@@ -272,19 +272,6 @@ export default class Sticky extends Component {
       state.sticky = sticky;
       this.setState(state, ()=> this.updatingState = false);
     }
-
-    if(this.state.sticky !== sticky){
-      let newState;
-      const height = this.getBoundingClientRect().height;
-      if(height !== this.state.bounds.height){
-        newState = this.getBounds();
-        newState.sticky = sticky;
-      }else{
-        newState = {sticky:sticky};
-      }
-      this.setState(newState, ()=> this.updatingState = false);
-      // this.setState(newState);
-    }
   }
 
 
