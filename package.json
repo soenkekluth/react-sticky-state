@@ -1,6 +1,6 @@
 {
   "name": "react-sticky-state",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "React StickyState Component makes native position:sticky statefull and polyfills the missing sticky browser feature",
   "main": "index.js",
   "scripts": {
