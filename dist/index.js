@@ -201,6 +201,7 @@ var Sticky = function (_Component) {
           rect = getAbsolutBoundingRect(elem);
           if (this.hasOwnScrollTarget) {
             rect = addBounds(rect, getAbsolutBoundingRect(this.scrollTarget));
+            offset += this.fastScroll.scrollY;
           }
 
           rect.top = rect.bottom + offset;
@@ -211,8 +212,16 @@ var Sticky = function (_Component) {
           rect = getAbsolutBoundingRect(elem);
           if (this.hasOwnScrollTarget) {
             rect = addBounds(rect, getAbsolutBoundingRect(this.scrollTarget));
+            offset += this.fastScroll.scrollY;
           }
           rect.top = rect.top + offset;
+        }
+
+        if (this.hasOwnScrollTarget) {
+          restrict = getAbsolutBoundingRect(this.scrollTarget);
+          restrict.top = 0;
+          restrict.height = this.scrollTarget.scrollHeight || restrict.height;
+          restrict.bottom = restrict.height;
         }
 
         rect.height = this.refs.el.clientHeight;
