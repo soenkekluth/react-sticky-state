@@ -1,3 +1,5 @@
+'use strict';
+
 import React, { Component, PropTypes } from 'react';
 import classNames from 'classnames';
 import FastScroll from 'fastscroll';
@@ -41,13 +43,14 @@ function getSrollPosition() {
   return (window.scrollY || window.pageYOffset || 0);
 }
 
-function getAbsolutBoundingRect(el) {
+function getAbsolutBoundingRect(el, fixedHeight) {
   var rect = el.getBoundingClientRect();
   var top = rect.top + getSrollPosition();
+  var height = fixedHeight || rect.height;
   return {
     top: top,
-    bottom: top + rect.height,
-    height: rect.height,
+    bottom: top + height,
+    height: height,
     width: rect.width
   };
 }
@@ -83,8 +86,6 @@ function getPreviousElementSibling(el) {
   return prev;
 }
 
-
-
 export default class Sticky extends Component {
 
   static propTypes = {
@@ -106,8 +107,9 @@ export default class Sticky extends Component {
   constructor(props, context) {
     super(props, context);
 
-    this.silent = true;
-    this.updatingState = false;
+    this._shouldComponentUpdate = false;
+    this._updatingState = false;
+    this._key = 'sticky_'+Math.round(Math.random()*1000);
 
     this.state = {
       sticky: false,
@@ -146,8 +148,11 @@ export default class Sticky extends Component {
 
   getBounds(noCache){
 
+    const clientRect  = this.getBoundingClientRect();
+
     if(noCache !== true && this.state.bounds.height !== null) {
-      if (this.getBoundingClientRect().height === this.state.bounds.height) {
+
+      if (clientRect.height === this.state.bounds.height) {
         return {
           bounds: this.state.bounds,
           restrict: this.state.restrict
@@ -167,7 +172,7 @@ export default class Sticky extends Component {
     };
 
     if (!this.canSticky) {
-      rect = getAbsolutBoundingRect(child);
+      rect = getAbsolutBoundingRect(this.refs.wrapper, clientRect.height);
       if (this.hasOwnScrollTarget) {
         var parentRect = getAbsolutBoundingRect(this.scrollTarget);
 
@@ -177,7 +182,7 @@ export default class Sticky extends Component {
         rect = addBounds(rect, parentRect);
         restrict = assign({},rect);
       }
-    }else {
+    } else {
       var elem = getPreviousElementSibling(child);
       var offset = 0;
 
@@ -218,88 +223,99 @@ export default class Sticky extends Component {
 
   }
 
-  updateBounds(cb){
+  updateBounds(cb) {
     this.setState(this.getBounds(true), cb);
   }
 
 
   getStickyState() {
 
-     var scrollY = this.fastScroll.scrollY;
-     var top = this.state.style.top;
-     var sticky = this.state.sticky;
-     var offsetBottom;
+    if(this.state.disabled){
+      return false;
+    }
 
-     if (top !== null) {
-       offsetBottom = this.state.restrict.bottom - this.state.bounds.height - top;
-       top = this.state.bounds.top - top;
+    var scrollY = this.fastScroll.scrollY;
+    var top = this.state.style.top;
+    var sticky = this.state.sticky;
+    var offsetBottom;
 
-       if (this.state.sticky === false && scrollY >= top && scrollY <= offsetBottom) {
-         sticky = true;
-       } else if (this.state.sticky && (scrollY < top || scrollY > offsetBottom)) {
-         sticky = false;
-       }
-       return sticky;
-     }
+    if (top !== null) {
+      offsetBottom = this.state.restrict.bottom - this.state.bounds.height - top;
+      top = this.state.bounds.top - top;
 
-     scrollY += window.innerHeight;
-     var bottom = this.state.style.bottom;
-     if (bottom !== null) {
-       offsetBottom = this.state.restrict.top + this.state.bounds.height - bottom;
-       bottom = this.state.bounds.bottom + bottom;
+      if (this.state.sticky === false && scrollY >= top && scrollY <= offsetBottom) {
+        sticky = true;
+      } else if (this.state.sticky && (scrollY < top || scrollY > offsetBottom)) {
+        sticky = false;
+      }
+      return sticky;
+    }
 
-       if (this.state.sticky === false && scrollY <= bottom && scrollY >= offsetBottom) {
-         sticky = true;
-       } else if (this.state.sticky && (scrollY > bottom || scrollY < offsetBottom)) {
-         sticky = false;
-       }
-     }
-     return sticky;
+    scrollY += window.innerHeight;
+    var bottom = this.state.style.bottom;
+    if (bottom !== null) {
+      offsetBottom = this.state.restrict.top + this.state.bounds.height - bottom;
+      bottom = this.state.bounds.bottom + bottom;
+
+      if (this.state.sticky === false && scrollY <= bottom && scrollY >= offsetBottom) {
+        sticky = true;
+      } else if (this.state.sticky && (scrollY > bottom || scrollY < offsetBottom)) {
+        sticky = false;
+      }
+    }
+    return sticky;
 
   }
 
 
-  updateStickyState(silent) {
-    if(this.updatingState){
+
+  updateStickyState() {
+    if(this._updatingState){
       return;
     }
     const sticky = this.getStickyState();
 
     if(sticky !== this.state.sticky) {
-      this.updatingState = true;
-      silent = silent === true;
+      this._updatingState = true;
       var state = this.getBounds();
       state.sticky = sticky;
-      this.setState(state, ()=> this.updatingState = false);
+      this.setState(state, ()=> this._updatingState = false);
     }
+  }
+
+
+  initialize(){
+
+    this.scrollTarget = stickyNative() ? (window.getComputedStyle(this.refs.el.parentNode).overflow !== 'auto' ? window : this.refs.el.parentNode) : window;
+    this.hasOwnScrollTarget = this.scrollTarget !== window;
+
+    this.addSrollHandler();
+    this.addResizeHandler();
+
+    this._shouldComponentUpdate = false;
+    this.updateBounds(()=>{
+      this._shouldComponentUpdate = true;
+      this.updateStickyState();
+    });
   }
 
 
 
   addSrollHandler() {
-    if (!this.scrollHandler) {
-      var hasScrollTarget = FastScroll.hasScrollTarget(this.scrollTarget);
-      this.fastScroll = new FastScroll(this.scrollTarget, {animationFrame:true});
-      this.scrollHandler = this.updateStickyState.bind(this);
-
-      this.fastScroll.on('scroll:start', this.scrollHandler);
-      this.fastScroll.on('scroll:progress', this.scrollHandler);
-      this.fastScroll.on('scroll:stop', this.scrollHandler);
-
-      if(hasScrollTarget && this.fastScroll.scrollY > 0){
-        this.fastScroll.trigger('scroll:progress');
-      }
+    if (!this.onScroll) {
+      this.fastScroll = FastScroll.getInstance(this.scrollTarget);
+      this.onScroll = ::this.updateStickyState;
+      this.fastScroll.on('scroll:start', this.onScroll);
+      this.fastScroll.on('scroll:progress', this.onScroll);
+      this.fastScroll.on('scroll:stop', this.onScroll);
     }
   }
 
   removeSrollHandler() {
-    if (this.fastScroll) {
-      this.fastScroll.off('scroll:start', this.scrollHandler);
-      this.fastScroll.off('scroll:progress', this.scrollHandler);
-      this.fastScroll.off('scroll:stop', this.scrollHandler);
-      this.fastScroll.destroy();
-      this.scrollHandler = null;
-      this.fastScroll = null;
+    if (this.onScroll) {
+      this.fastScroll.off('scroll:start', this.onScroll);
+      this.fastScroll.off('scroll:progress', this.onScroll);
+      this.fastScroll.off('scroll:stop', this.onScroll);
     }
   }
 
@@ -320,16 +336,16 @@ export default class Sticky extends Component {
   }
 
   onResize(e) {
-    // this.silent = true;
-    // this.updateBounds(()=>{
-    //   this.silent = false;
-    //   this.updateStickyState();
-    // });
+    this._shouldComponentUpdate = false;
+    this.updateBounds(()=>{
+      this._shouldComponentUpdate = true;
+      this.updateStickyState();
+    });
   }
 
 
   shouldComponentUpdate( newProps, newState ) {
-      return !this.silent;
+    return this._shouldComponentUpdate;
   }
 
 
@@ -342,26 +358,21 @@ export default class Sticky extends Component {
   }
 
   componentDidMount() {
-
-    setTimeout(()=> {
-      this.scrollTarget = stickyNative() ? (window.getComputedStyle(this.refs.el.parentNode).overflow !== 'auto' ? window : this.refs.el.parentNode) : window;
-      this.hasOwnScrollTarget = this.scrollTarget !== window;
-
-      this.addSrollHandler();
-      this.addResizeHandler();
-
-      this.silent = true;
-      this.updateBounds(()=>{
-        this.silent = false;
-        this.updateStickyState();
-      });
-    }, 1);
-
+     setTimeout(()=>  this.initialize(), 1);
   }
 
-  componentWillUnmount(){
+  componentWillUnmount() {
+    this._shouldComponentUpdate = false;
     this.removeSrollHandler();
     this.removeResizeHandler();
+
+    //TODO optimize
+    if(!this.fastScroll.dispatcher.hasListeners()){
+      this.fastScroll.destroy();
+      this.onScroll = null;
+      this.fastScroll = null;
+    }
+    this.scrollTarget = null;
   }
 
   render() {
@@ -372,10 +383,10 @@ export default class Sticky extends Component {
    const className = classNames({'sticky' : !this.state.disabled, 'sticky-disabled' : this.state.disabled }, {'sticky-fixed': !this.canSticky}, {'is-sticky' : this.state.sticky && !this.state.disabled});
 
    if(element){
-     element = React.cloneElement(element , {ref:refName, className: classNames(element.props.className, className) });
+     element = React.cloneElement(element , {ref:refName, key: this._key, className: classNames(element.props.className, className) });
    }else{
     const Comp = this.props.tagName;
-    element = <Comp ref={refName} className={className}>{this.props.children}</Comp>
+    element = <Comp ref={refName} key={this._key} className={className}>{this.props.children}</Comp>
    }
 
    if(this.canSticky) {
@@ -383,7 +394,7 @@ export default class Sticky extends Component {
    }
 
    const  height = (this.state.disabled || (!this.state.sticky || this.state.bounds.height === null)) ? 'auto' :this.state.bounds.height+ 'px';
-
+   // const  height = (this.state.disabled || this.state.bounds.height === null) ? 'auto' : this.state.bounds.height + 'px';
    return (
      <div ref="wrapper" className="sticky-wrap" style={{height:height}}>
        {element}
