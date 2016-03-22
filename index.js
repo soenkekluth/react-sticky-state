@@ -146,7 +146,7 @@ export default class Sticky extends Component {
     const offsetHeight = document.body.offsetHeight || 0;
 
     if (noCache !== true && this.state.bounds.height !== null) {
-      if (clientRect.height === this.state.bounds.height) {
+      if (clientRect.height === this.state.bounds.height && this.state.offsetHeight === offsetHeight) {
         return {
           offsetHeight: offsetHeight,
           style: this.state.style,
@@ -291,8 +291,11 @@ export default class Sticky extends Component {
     }
   }
 
-  initialize() {
+  update(){
+    this.updateBounds( false, this.onScroll);
+  }
 
+  initialize() {
     this.scrollTarget = (window.getComputedStyle(this.refs.el.parentNode).overflow !== 'auto' ? window : this.refs.el.parentNode);
     this.hasOwnScrollTarget = this.scrollTarget !== window;
     if (this.hasOwnScrollTarget) {
@@ -301,7 +304,7 @@ export default class Sticky extends Component {
 
     this.addSrollHandler();
     this.addResizeHandler();
-    this.updateBounds( false, this.onScroll);
+    this.update();
   }
 
   addSrollHandler() {
@@ -353,7 +356,7 @@ export default class Sticky extends Component {
   }
 
   onResize(e) {
-    this.updateBounds( false, this.onScroll);
+    this.update();
   }
 
   shouldComponentUpdate(newProps, newState) {
