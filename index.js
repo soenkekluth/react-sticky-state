@@ -292,7 +292,9 @@ export default class Sticky extends Component {
   }
 
   update(){
-    this.updateBounds( false, this.onScroll);
+    if(this.fastScroll) {
+      this.updateBounds( false, this.onScroll);
+    }
   }
 
   initialize() {

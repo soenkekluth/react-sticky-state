@@ -160,7 +160,7 @@ var Sticky = function (_Component) {
       var offsetHeight = document.body.offsetHeight || 0;
 
       if (noCache !== true && this.state.bounds.height !== null) {
-        if (clientRect.height === this.state.bounds.height) {
+        if (clientRect.height === this.state.bounds.height && this.state.offsetHeight === offsetHeight) {
           return {
             offsetHeight: offsetHeight,
             style: this.state.style,
@@ -316,9 +316,15 @@ var Sticky = function (_Component) {
       }
     }
   }, {
+    key: 'update',
+    value: function update() {
+      if (this.fastScroll) {
+        this.updateBounds(false, this.onScroll);
+      }
+    }
+  }, {
     key: 'initialize',
     value: function initialize() {
-
       this.scrollTarget = window.getComputedStyle(this.refs.el.parentNode).overflow !== 'auto' ? window : this.refs.el.parentNode;
       this.hasOwnScrollTarget = this.scrollTarget !== window;
       if (this.hasOwnScrollTarget) {
@@ -327,7 +333,7 @@ var Sticky = function (_Component) {
 
       this.addSrollHandler();
       this.addResizeHandler();
-      this.updateBounds(false, this.onScroll);
+      this.update();
     }
   }, {
     key: 'addSrollHandler',
@@ -385,7 +391,7 @@ var Sticky = function (_Component) {
   }, {
     key: 'onResize',
     value: function onResize(e) {
-      this.updateBounds(false, this.onScroll);
+      this.update();
     }
   }, {
     key: 'shouldComponentUpdate',
