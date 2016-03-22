@@ -124,10 +124,8 @@ var Sticky = function (_Component) {
 
     _this.state = {
       sticky: false,
-      fixedOffset: {
-        top: 0,
-        bottom: 0
-      },
+      fixedOffset: '',
+      absolute: false,
       bounds: {
         top: null,
         bottom: null,
@@ -159,11 +157,13 @@ var Sticky = function (_Component) {
     value: function getBounds(noCache) {
 
       var clientRect = this.getBoundingClientRect();
+      var offsetHeight = document.body.offsetHeight || 0;
 
       if (noCache !== true && this.state.bounds.height !== null) {
-
         if (clientRect.height === this.state.bounds.height) {
           return {
+            offsetHeight: offsetHeight,
+            style: this.state.style,
             bounds: this.state.bounds,
             restrict: this.state.restrict
           };
@@ -174,26 +174,22 @@ var Sticky = function (_Component) {
       var child = this.refs.wrapper || this.refs.el;
       var rect;
       var restrict;
-
-      var fixedOffset = {
-        top: 0,
-        bottom: 0
-      };
+      var offset = 0;
 
       if (!this.canSticky) {
-        rect = getAbsolutBoundingRect(this.refs.wrapper, clientRect.height);
+        rect = getAbsolutBoundingRect(child, clientRect.height);
         if (this.hasOwnScrollTarget) {
           var parentRect = getAbsolutBoundingRect(this.scrollTarget);
-
-          fixedOffset.top = parentRect.top;
-          fixedOffset.bottom = parentRect.bottom;
-
+          offset = this.fastScroll.scrollY;
           rect = addBounds(rect, parentRect);
-          restrict = (0, _objectAssign2.default)({}, rect);
+          restrict = parentRect;
+          restrict.top = 0;
+          restrict.height = this.scrollTarget.scrollHeight || restrict.height;
+          restrict.bottom = restrict.height;
         }
       } else {
         var elem = getPreviousElementSibling(child);
-        var offset = 0;
+        offset = 0;
 
         if (elem) {
           offset = parseInt(window.getComputedStyle(elem)['margin-bottom']);
@@ -203,7 +199,6 @@ var Sticky = function (_Component) {
             rect = addBounds(rect, getAbsolutBoundingRect(this.scrollTarget));
             offset += this.fastScroll.scrollY;
           }
-
           rect.top = rect.bottom + offset;
         } else {
           elem = child.parentNode;
@@ -216,7 +211,6 @@ var Sticky = function (_Component) {
           }
           rect.top = rect.top + offset;
         }
-
         if (this.hasOwnScrollTarget) {
           restrict = getAbsolutBoundingRect(this.scrollTarget);
           restrict.top = 0;
@@ -224,14 +218,15 @@ var Sticky = function (_Component) {
           restrict.bottom = restrict.height;
         }
 
-        rect.height = this.refs.el.clientHeight;
-        rect.width = this.refs.el.clientWidth;
+        rect.height = child.clientHeight;
+        rect.width = child.clientWidth;
         rect.bottom = rect.top + rect.height;
       }
+
       restrict = restrict || getAbsolutBoundingRect(child.parentNode);
 
       return {
-        fixedOffset: fixedOffset,
+        offsetHeight: offsetHeight,
         style: style,
         bounds: rect,
         restrict: restrict
@@ -239,90 +234,107 @@ var Sticky = function (_Component) {
     }
   }, {
     key: 'updateBounds',
-    value: function updateBounds(cb) {
-      this.setState(this.getBounds(true), cb);
+    value: function updateBounds() {
+      var _this2 = this;
+
+      var shouldComponentUpdate = arguments.length <= 0 || arguments[0] === undefined ? true : arguments[0];
+      var cb = arguments[1];
+
+      this._shouldComponentUpdate = shouldComponentUpdate;
+      this.setState(this.getBounds(true), function () {
+        _this2._shouldComponentUpdate = true;
+        if (cb) {
+          cb();
+        }
+      });
     }
   }, {
     key: 'getStickyState',
     value: function getStickyState() {
 
       if (this.state.disabled) {
-        return false;
+        return { sticky: false, absolute: false };
       }
 
       var scrollY = this.fastScroll.scrollY;
       var top = this.state.style.top;
+      var bottom = this.state.style.bottom;
       var sticky = this.state.sticky;
-      var offsetBottom;
+      var absolute = this.state.absolute;
 
       if (top !== null) {
-        offsetBottom = this.state.restrict.bottom - this.state.bounds.height - top;
+        var offsetBottom = this.state.restrict.bottom - this.state.bounds.height - top;
         top = this.state.bounds.top - top;
-
         if (this.state.sticky === false && scrollY >= top && scrollY <= offsetBottom) {
           sticky = true;
+          absolute = false;
         } else if (this.state.sticky && (scrollY < top || scrollY > offsetBottom)) {
           sticky = false;
+          absolute = scrollY >= offsetBottom;
         }
-        return sticky;
-      }
+      } else if (bottom !== null) {
 
-      scrollY += window.innerHeight;
-      var bottom = this.state.style.bottom;
-      if (bottom !== null) {
-        offsetBottom = this.state.restrict.top + this.state.bounds.height - bottom;
+        scrollY += window.innerHeight;
+        var offsetTop = this.state.restrict.top + this.state.bounds.height - bottom;
         bottom = this.state.bounds.bottom + bottom;
 
-        if (this.state.sticky === false && scrollY <= bottom && scrollY >= offsetBottom) {
+        if (this.state.sticky === false && scrollY <= bottom && scrollY >= offsetTop) {
           sticky = true;
-        } else if (this.state.sticky && (scrollY > bottom || scrollY < offsetBottom)) {
+          absolute = false;
+        } else if (this.state.sticky && (scrollY > bottom || scrollY < offsetTop)) {
           sticky = false;
+          absolute = scrollY <= offsetTop;
         }
       }
-      return sticky;
+      return { sticky: sticky, absolute: absolute };
     }
   }, {
     key: 'updateStickyState',
     value: function updateStickyState() {
-      var _this2 = this;
+      var _this3 = this;
 
       if (this._updatingState) {
         return;
       }
-      var sticky = this.getStickyState();
+      var values = this.getStickyState();
 
-      if (sticky !== this.state.sticky) {
+      if (values.sticky !== this.state.sticky || values.absolute !== this.state.absolute) {
         this._updatingState = true;
-        var state = this.getBounds();
-        state.sticky = sticky;
-        this.setState(state, function () {
-          return _this2._updatingState = false;
+        values = (0, _objectAssign2.default)(values, this.getBounds());
+        this.setState(values, function () {
+          return _this3._updatingState = false;
         });
+      }
+    }
+  }, {
+    key: 'updateFixedOffset',
+    value: function updateFixedOffset() {
+      if (this.state.sticky) {
+        this.setState({ fixedOffset: this.scrollTarget.getBoundingClientRect().top + 'px' });
+      } else {
+        this.setState({ fixedOffset: '' });
       }
     }
   }, {
     key: 'initialize',
     value: function initialize() {
-      var _this3 = this;
 
-      this.scrollTarget = stickyNative() ? window.getComputedStyle(this.refs.el.parentNode).overflow !== 'auto' ? window : this.refs.el.parentNode : window;
+      this.scrollTarget = window.getComputedStyle(this.refs.el.parentNode).overflow !== 'auto' ? window : this.refs.el.parentNode;
       this.hasOwnScrollTarget = this.scrollTarget !== window;
+      if (this.hasOwnScrollTarget) {
+        this.updateFixedOffset = this.updateFixedOffset.bind(this);
+      }
 
       this.addSrollHandler();
       this.addResizeHandler();
-
-      this._shouldComponentUpdate = false;
-      this.updateBounds(function () {
-        _this3._shouldComponentUpdate = true;
-        _this3.updateStickyState();
-      });
+      this.updateBounds(false, this.onScroll);
     }
   }, {
     key: 'addSrollHandler',
     value: function addSrollHandler() {
-      if (!this.onScroll) {
+      if (!this.fastScroll) {
         this.fastScroll = _fastscroll2.default.getInstance(this.scrollTarget);
-        this.onScroll = this.updateStickyState.bind(this);
+        this.onScroll = this.onScroll.bind(this);
         this.fastScroll.on('scroll:start', this.onScroll);
         this.fastScroll.on('scroll:progress', this.onScroll);
         this.fastScroll.on('scroll:stop', this.onScroll);
@@ -331,7 +343,7 @@ var Sticky = function (_Component) {
   }, {
     key: 'removeSrollHandler',
     value: function removeSrollHandler() {
-      if (this.onScroll) {
+      if (this.fastScroll) {
         this.fastScroll.off('scroll:start', this.onScroll);
         this.fastScroll.off('scroll:progress', this.onScroll);
         this.fastScroll.off('scroll:stop', this.onScroll);
@@ -356,15 +368,24 @@ var Sticky = function (_Component) {
       }
     }
   }, {
+    key: 'onScroll',
+    value: function onScroll(e) {
+      this.updateStickyState();
+      if (this.hasOwnScrollTarget && !this.canSticky) {
+        this.updateFixedOffset();
+        if (this.state.sticky && !this.hasWindowScrollListener) {
+          this.hasWindowScrollListener = true;
+          _fastscroll2.default.getInstance(window).on('scroll:progress', this.updateFixedOffset);
+        } else if (!this.state.sticky && this.hasWindowScrollListener) {
+          this.hasWindowScrollListener = false;
+          _fastscroll2.default.getInstance(window).off('scroll:progress', this.updateFixedOffset);
+        }
+      }
+    }
+  }, {
     key: 'onResize',
     value: function onResize(e) {
-      var _this4 = this;
-
-      this._shouldComponentUpdate = false;
-      this.updateBounds(function () {
-        _this4._shouldComponentUpdate = true;
-        _this4.updateStickyState();
-      });
+      this.updateBounds(false, this.onScroll);
     }
   }, {
     key: 'shouldComponentUpdate',
@@ -383,10 +404,10 @@ var Sticky = function (_Component) {
   }, {
     key: 'componentDidMount',
     value: function componentDidMount() {
-      var _this5 = this;
+      var _this4 = this;
 
       setTimeout(function () {
-        return _this5.initialize();
+        return _this4.initialize();
       }, 1);
     }
   }, {
@@ -399,9 +420,9 @@ var Sticky = function (_Component) {
       //TODO optimize
       if (!this.fastScroll.dispatcher.hasListeners()) {
         this.fastScroll.destroy();
-        this.onScroll = null;
-        this.fastScroll = null;
+        // this.onScroll = null;
       }
+      this.fastScroll = null;
       this.scrollTarget = null;
     }
   }, {
@@ -410,16 +431,31 @@ var Sticky = function (_Component) {
 
       var element = _react2.default.Children.only(this.props.children);
 
+      var style;
       var refName = 'el';
-      var className = (0, _classnames2.default)({ 'sticky': !this.state.disabled, 'sticky-disabled': this.state.disabled }, { 'sticky-fixed': !this.canSticky }, { 'is-sticky': this.state.sticky && !this.state.disabled });
+      var className = (0, _classnames2.default)({ 'sticky': !this.state.disabled, 'sticky-disabled': this.state.disabled }, { 'sticky-fixed': !this.canSticky }, { 'is-sticky': this.state.sticky && !this.state.disabled }, { 'is-absolute': this.state.absolute });
+
+      if (!this.canSticky) {
+        if (this.state.absolute) {
+
+          style = {
+            marginTop: this.state.style.top !== null ? this.state.restrict.height - (this.state.bounds.height + this.state.style.top) + (this.state.restrict.top - this.state.bounds.top) + 'px' : '',
+            marginBottom: this.state.style.bottom !== null ? this.state.restrict.height - (this.state.bounds.height + this.state.style.bottom) + (this.state.restrict.bottom - this.state.bounds.bottom) + 'px' : ''
+          };
+        } else if (this.hasOwnScrollTarget && this.state.fixedOffset !== '') {
+          style = {
+            marginTop: this.state.fixedOffset
+          };
+        }
+      }
 
       if (element) {
-        element = _react2.default.cloneElement(element, { ref: refName, key: this._key, className: (0, _classnames2.default)(element.props.className, className) });
+        element = _react2.default.cloneElement(element, { ref: refName, key: this._key, style: style, className: (0, _classnames2.default)(element.props.className, className) });
       } else {
         var Comp = this.props.tagName;
         element = _react2.default.createElement(
           Comp,
-          { ref: refName, key: this._key, className: className },
+          { ref: refName, key: this._key, style: style, className: className },
           this.props.children
         );
       }
@@ -428,11 +464,16 @@ var Sticky = function (_Component) {
         return element;
       }
 
-      var height = this.state.disabled || !this.state.sticky || this.state.bounds.height === null ? 'auto' : this.state.bounds.height + 'px';
-      // const  height = (this.state.disabled || this.state.bounds.height === null) ? 'auto' : this.state.bounds.height + 'px';
+      var height = this.state.disabled || this.state.bounds.height === null || !this.state.sticky && !this.state.absolute ? 'auto' : this.state.bounds.height + 'px';
+      style = {
+        height: height
+      };
+      if (this.state.absolute) {
+        style.position = 'relative';
+      }
       return _react2.default.createElement(
         'div',
-        { ref: 'wrapper', className: 'sticky-wrap', style: { height: height } },
+        { ref: 'wrapper', className: 'sticky-wrap', style: style },
         element
       );
     }

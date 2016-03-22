@@ -9,7 +9,6 @@ var _globals = {
   featureTested: false
 };
 
-
 export function stickyNative() {
   if (_globals.featureTested) {
     return _globals.canSticky;
@@ -17,8 +16,8 @@ export function stickyNative() {
   if (typeof window !== 'undefined') {
     _globals.featureTested = true;
 
-    if(window.Modernizr && window.Modernizr.hasOwnProperty('csspositionsticky')) {
-      return  _globals.canSticky = window.Modernizr.csspositionsticky;
+    if (window.Modernizr && window.Modernizr.hasOwnProperty('csspositionsticky')) {
+      return _globals.canSticky = window.Modernizr.csspositionsticky;
     }
 
     _globals.canSticky = false;
@@ -26,10 +25,10 @@ export function stickyNative() {
     document.documentElement.appendChild(testEl);
     var prefixedSticky = ['sticky', '-webkit-sticky'];
 
-    for(var i = 0; i < prefixedSticky.length; i++) {
+    for (var i = 0; i < prefixedSticky.length; i++) {
       testEl.style.position = prefixedSticky[i];
       _globals.canSticky = !!window.getComputedStyle(testEl).position.match('sticky');
-      if(_globals.canSticky){
+      if (_globals.canSticky) {
         break;
       }
     }
@@ -37,7 +36,6 @@ export function stickyNative() {
   }
   return _globals.canSticky;
 };
-
 
 function getSrollPosition() {
   return (window.scrollY || window.pageYOffset || 0);
@@ -77,7 +75,6 @@ function getPositionStyle(el) {
   return obj;
 }
 
-
 function getPreviousElementSibling(el) {
   var prev = el.previousElementSibling;
   if (prev && prev.tagName.toLocaleLowerCase() === 'script') {
@@ -93,7 +90,7 @@ export default class Sticky extends Component {
     fixedClass: React.PropTypes.string,
     stateClass:  React.PropTypes.string,
     disabled: React.PropTypes.bool,
-    tagName : React.PropTypes.string
+    tagName: React.PropTypes.string
   };
 
   static defaultProps = {
@@ -109,14 +106,12 @@ export default class Sticky extends Component {
 
     this._shouldComponentUpdate = false;
     this._updatingState = false;
-    this._key = 'sticky_'+Math.round(Math.random()*1000);
+    this._key = 'sticky_' + Math.round(Math.random() * 1000);
 
     this.state = {
       sticky: false,
-      fixedOffset:{
-        top: 0,
-        bottom: 0
-      },
+      fixedOffset: '',
+      absolute: false,
       bounds: {
         top: null,
         bottom: null,
@@ -137,8 +132,7 @@ export default class Sticky extends Component {
     };
   }
 
-
-  get canSticky(){
+  get canSticky() {
     return stickyNative();
   }
 
@@ -146,45 +140,42 @@ export default class Sticky extends Component {
     return this.refs.el.getBoundingClientRect();
   }
 
-  getBounds(noCache){
+  getBounds(noCache) {
 
     const clientRect  = this.getBoundingClientRect();
+    const offsetHeight = document.body.offsetHeight || 0;
 
-    if(noCache !== true && this.state.bounds.height !== null) {
-
+    if (noCache !== true && this.state.bounds.height !== null) {
       if (clientRect.height === this.state.bounds.height) {
         return {
+          offsetHeight: offsetHeight,
+          style: this.state.style,
           bounds: this.state.bounds,
           restrict: this.state.restrict
         };
       }
     }
 
-
     var style = getPositionStyle(this.refs.el);
     var child = this.refs.wrapper || this.refs.el;
     var rect;
     var restrict;
-
-    var fixedOffset = {
-        top: 0,
-        bottom: 0
-    };
+    var offset = 0;
 
     if (!this.canSticky) {
-      rect = getAbsolutBoundingRect(this.refs.wrapper, clientRect.height);
+      rect = getAbsolutBoundingRect(child, clientRect.height);
       if (this.hasOwnScrollTarget) {
         var parentRect = getAbsolutBoundingRect(this.scrollTarget);
-
-        fixedOffset.top = parentRect.top;
-        fixedOffset.bottom = parentRect.bottom;
-
+        offset = this.fastScroll.scrollY;
         rect = addBounds(rect, parentRect);
-        restrict = assign({},rect);
+        restrict = parentRect;
+        restrict.top = 0;
+        restrict.height = this.scrollTarget.scrollHeight || restrict.height;
+        restrict.bottom = restrict.height;
       }
     } else {
       var elem = getPreviousElementSibling(child);
-      var offset = 0;
+      offset = 0;
 
       if (elem) {
         offset = parseInt(window.getComputedStyle(elem)['margin-bottom']);
@@ -194,8 +185,7 @@ export default class Sticky extends Component {
           rect = addBounds(rect, getAbsolutBoundingRect(this.scrollTarget));
           offset += this.fastScroll.scrollY;
         }
-
-        rect.top  = rect.bottom + offset;
+        rect.top = rect.bottom + offset;
 
       } else {
         elem = child.parentNode;
@@ -206,114 +196,118 @@ export default class Sticky extends Component {
           rect = addBounds(rect, getAbsolutBoundingRect(this.scrollTarget));
           offset += this.fastScroll.scrollY;
         }
-        rect.top =  rect.top +  offset;
+        rect.top = rect.top + offset;
       }
-
-      if(this.hasOwnScrollTarget){
+      if (this.hasOwnScrollTarget) {
         restrict = getAbsolutBoundingRect(this.scrollTarget);
         restrict.top = 0;
         restrict.height = this.scrollTarget.scrollHeight || restrict.height;
         restrict.bottom = restrict.height;
       }
 
-      rect.height = this.refs.el.clientHeight;
-      rect.width = this.refs.el.clientWidth;
+      rect.height = child.clientHeight;
+      rect.width = child.clientWidth;
       rect.bottom = rect.top + rect.height;
-
     }
+
     restrict = restrict || getAbsolutBoundingRect(child.parentNode);
 
     return {
-      fixedOffset:fixedOffset,
-      style: style,
-      bounds: rect,
-      restrict:restrict
-    };
+        offsetHeight: offsetHeight,
+        style: style,
+        bounds: rect,
+        restrict: restrict
+      };
 
   }
 
-  updateBounds(cb) {
-    this.setState(this.getBounds(true), cb);
+  updateBounds(shouldComponentUpdate = true, cb) {
+    this._shouldComponentUpdate = shouldComponentUpdate;
+    this.setState(this.getBounds(true), ()=>{
+      this._shouldComponentUpdate = true;
+      if(cb){
+        cb();
+      }
+    });
   }
-
 
   getStickyState() {
 
-    if(this.state.disabled){
-      return false;
+    if (this.state.disabled) {
+      return {sticky: false, absolute: false};
     }
 
     var scrollY = this.fastScroll.scrollY;
     var top = this.state.style.top;
+    var bottom = this.state.style.bottom;
     var sticky = this.state.sticky;
-    var offsetBottom;
+    var absolute = this.state.absolute;
 
     if (top !== null) {
-      offsetBottom = this.state.restrict.bottom - this.state.bounds.height - top;
+      var offsetBottom = this.state.restrict.bottom - this.state.bounds.height - top;
       top = this.state.bounds.top - top;
-
       if (this.state.sticky === false && scrollY >= top && scrollY <= offsetBottom) {
         sticky = true;
+        absolute = false;
       } else if (this.state.sticky && (scrollY < top || scrollY > offsetBottom)) {
         sticky = false;
+        absolute =  scrollY >= offsetBottom;
       }
-      return sticky;
-    }
+    } else if (bottom !== null) {
 
-    scrollY += window.innerHeight;
-    var bottom = this.state.style.bottom;
-    if (bottom !== null) {
-      offsetBottom = this.state.restrict.top + this.state.bounds.height - bottom;
+      scrollY += window.innerHeight;
+      var offsetTop = this.state.restrict.top + this.state.bounds.height - bottom;
       bottom = this.state.bounds.bottom + bottom;
 
-      if (this.state.sticky === false && scrollY <= bottom && scrollY >= offsetBottom) {
+      if (this.state.sticky === false && scrollY <= bottom && scrollY >= offsetTop) {
         sticky = true;
-      } else if (this.state.sticky && (scrollY > bottom || scrollY < offsetBottom)) {
+        absolute = false;
+      } else if (this.state.sticky && (scrollY > bottom || scrollY < offsetTop)) {
         sticky = false;
+        absolute =  scrollY <= offsetTop;
       }
     }
-    return sticky;
-
+    return {sticky: sticky, absolute: absolute };
   }
-
-
 
   updateStickyState() {
-    if(this._updatingState){
+    if (this._updatingState) {
       return;
     }
-    const sticky = this.getStickyState();
+    var values = this.getStickyState();
 
-    if(sticky !== this.state.sticky) {
+    if (values.sticky !== this.state.sticky || values.absolute !== this.state.absolute) {
       this._updatingState = true;
-      var state = this.getBounds();
-      state.sticky = sticky;
-      this.setState(state, ()=> this._updatingState = false);
+      values = assign(values, this.getBounds());
+      this.setState(values, ()=> this._updatingState = false);
     }
   }
 
+  updateFixedOffset() {
+    if (this.state.sticky) {
+      this.setState({fixedOffset: this.scrollTarget.getBoundingClientRect().top + 'px'});
+    } else {
+      this.setState({fixedOffset: ''});
+    }
+  }
 
-  initialize(){
+  initialize() {
 
-    this.scrollTarget = stickyNative() ? (window.getComputedStyle(this.refs.el.parentNode).overflow !== 'auto' ? window : this.refs.el.parentNode) : window;
+    this.scrollTarget = (window.getComputedStyle(this.refs.el.parentNode).overflow !== 'auto' ? window : this.refs.el.parentNode);
     this.hasOwnScrollTarget = this.scrollTarget !== window;
+    if (this.hasOwnScrollTarget) {
+      this.updateFixedOffset = ::this.updateFixedOffset;
+    }
 
     this.addSrollHandler();
     this.addResizeHandler();
-
-    this._shouldComponentUpdate = false;
-    this.updateBounds(()=>{
-      this._shouldComponentUpdate = true;
-      this.updateStickyState();
-    });
+    this.updateBounds( false, this.onScroll);
   }
 
-
-
   addSrollHandler() {
-    if (!this.onScroll) {
+    if (!this.fastScroll) {
       this.fastScroll = FastScroll.getInstance(this.scrollTarget);
-      this.onScroll = ::this.updateStickyState;
+      this.onScroll = ::this.onScroll;
       this.fastScroll.on('scroll:start', this.onScroll);
       this.fastScroll.on('scroll:progress', this.onScroll);
       this.fastScroll.on('scroll:stop', this.onScroll);
@@ -321,7 +315,7 @@ export default class Sticky extends Component {
   }
 
   removeSrollHandler() {
-    if (this.onScroll) {
+    if (this.fastScroll) {
       this.fastScroll.off('scroll:start', this.onScroll);
       this.fastScroll.off('scroll:progress', this.onScroll);
       this.fastScroll.off('scroll:stop', this.onScroll);
@@ -330,7 +324,7 @@ export default class Sticky extends Component {
 
   addResizeHandler() {
     if (!this.resizeHandler) {
-      this.resizeHandler = this.onResize.bind(this);
+      this.resizeHandler = ::this.onResize;
       window.addEventListener('resize', this.resizeHandler, false);
       window.addEventListener('orientationchange', this.resizeHandler, false);
     }
@@ -344,22 +338,30 @@ export default class Sticky extends Component {
     }
   }
 
-  onResize(e) {
-    this._shouldComponentUpdate = false;
-    this.updateBounds(()=>{
-      this._shouldComponentUpdate = true;
-      this.updateStickyState();
-    });
+  onScroll(e) {
+    this.updateStickyState();
+    if (this.hasOwnScrollTarget && !this.canSticky) {
+      this.updateFixedOffset();
+      if (this.state.sticky && !this.hasWindowScrollListener) {
+        this.hasWindowScrollListener = true;
+        FastScroll.getInstance(window).on('scroll:progress', this.updateFixedOffset);
+      } else if (!this.state.sticky && this.hasWindowScrollListener) {
+        this.hasWindowScrollListener = false;
+        FastScroll.getInstance(window).off('scroll:progress', this.updateFixedOffset);
+      }
+    }
   }
 
+  onResize(e) {
+    this.updateBounds( false, this.onScroll);
+  }
 
-  shouldComponentUpdate( newProps, newState ) {
+  shouldComponentUpdate(newProps, newState) {
     return this._shouldComponentUpdate;
   }
 
-
-  componentWillReceiveProps(props){
-    if(props.disabled !== this.state.disabled){
+  componentWillReceiveProps(props) {
+    if (props.disabled !== this.state.disabled) {
       this.setState({
         disabled: props.disabled
       });
@@ -367,7 +369,7 @@ export default class Sticky extends Component {
   }
 
   componentDidMount() {
-     setTimeout(()=>  this.initialize(), 1);
+    setTimeout(()=>  this.initialize(), 1);
   }
 
   componentWillUnmount() {
@@ -376,38 +378,58 @@ export default class Sticky extends Component {
     this.removeResizeHandler();
 
     //TODO optimize
-    if(!this.fastScroll.dispatcher.hasListeners()){
+    if (!this.fastScroll.dispatcher.hasListeners()) {
       this.fastScroll.destroy();
-      this.onScroll = null;
-      this.fastScroll = null;
+      // this.onScroll = null;
     }
+    this.fastScroll = null;
     this.scrollTarget = null;
   }
 
   render() {
 
-   let element = React.Children.only(this.props.children);
+    let element = React.Children.only(this.props.children);
 
-   const refName = 'el';
-   const className = classNames({'sticky' : !this.state.disabled, 'sticky-disabled' : this.state.disabled }, {'sticky-fixed': !this.canSticky}, {'is-sticky' : this.state.sticky && !this.state.disabled});
+    var style;
+    const refName = 'el';
+    const className = classNames({'sticky': !this.state.disabled, 'sticky-disabled': this.state.disabled}, {'sticky-fixed': !this.canSticky}, {'is-sticky': this.state.sticky && !this.state.disabled}, {'is-absolute': this.state.absolute});
 
-   if(element){
-     element = React.cloneElement(element , {ref:refName, key: this._key, className: classNames(element.props.className, className) });
-   }else{
-    const Comp = this.props.tagName;
-    element = <Comp ref={refName} key={this._key} className={className}>{this.props.children}</Comp>
-   }
+    if(!this.canSticky){
+      if(this.state.absolute){
 
-   if(this.canSticky) {
-     return element;
-   }
+        style = {
+          marginTop: this.state.style.top !== null ? ( this.state.restrict.height - (this.state.bounds.height + this.state.style.top) + (this.state.restrict.top - this.state.bounds.top)) + 'px' : '',
+          marginBottom: this.state.style.bottom !== null ? (this.state.restrict.height - (this.state.bounds.height + this.state.style.bottom) + (this.state.restrict.bottom - this.state.bounds.bottom)) + 'px' : ''
+        };
+      }else if (this.hasOwnScrollTarget && this.state.fixedOffset !== '') {
+        style = {
+          marginTop: this.state.fixedOffset
+        };
+      }
+    }
 
-   const  height = (this.state.disabled || (!this.state.sticky || this.state.bounds.height === null)) ? 'auto' :this.state.bounds.height+ 'px';
-   // const  height = (this.state.disabled || this.state.bounds.height === null) ? 'auto' : this.state.bounds.height + 'px';
-   return (
-     <div ref="wrapper" className="sticky-wrap" style={{height:height}}>
-       {element}
-     </div>
-   );
+    if (element) {
+      element = React.cloneElement(element, {ref: refName, key: this._key, style:style, className: classNames(element.props.className, className)});
+    }else {
+      const Comp = this.props.tagName;
+      element = <Comp ref={refName} key={this._key} style={style} className={className}>{this.props.children}</Comp>;
+    }
+
+    if (this.canSticky) {
+      return element;
+    }
+
+    const height = (this.state.disabled || this.state.bounds.height === null ||  (!this.state.sticky && !this.state.absolute)) ? 'auto' : this.state.bounds.height + 'px';
+    style = {
+      height: height
+    };
+    if(this.state.absolute){
+      style.position = 'relative';
+    }
+    return (
+      <div ref='wrapper' className='sticky-wrap' style={style}>
+           {element}
+       </div>
+    );
   }
 }
