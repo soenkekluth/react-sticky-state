@@ -8,7 +8,7 @@ unlike almost all polyfills you can find in the wild StickyState is high perfoma
 
 
 ###Browser support
-IE >= 10, *
+IE >= 9, *
 
 ###install
 ```
@@ -26,6 +26,10 @@ your css should contain the following lines:
 .sticky.sticky-fixed.is-sticky {
   position: fixed;
   backface-visibility: hidden;
+}
+
+.sticky.sticky-fixed.is-absolute {
+  position: absolute;
 }
 ```
 
