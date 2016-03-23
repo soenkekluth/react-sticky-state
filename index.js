@@ -277,7 +277,7 @@ export default class Sticky extends Component {
         absolute =  scrollY < offsetTop;
       }
     }
-    return {sticky: sticky, absolute: absolute };
+    return {sticky: sticky, absolute: (this.canSticky ? false : absolute) };
   }
 
   updateStickyState(bounds = true, cb) {
