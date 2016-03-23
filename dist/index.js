@@ -296,7 +296,7 @@ var Sticky = function (_Component) {
           absolute = scrollY < offsetTop;
         }
       }
-      return { sticky: sticky, absolute: absolute };
+      return { sticky: sticky, absolute: this.canSticky ? false : absolute };
     }
   }, {
     key: 'updateStickyState',
