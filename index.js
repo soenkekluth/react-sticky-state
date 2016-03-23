@@ -5,6 +5,10 @@ import classNames from 'classnames';
 import FastScroll from 'fastscroll';
 import assign from 'object-assign';
 
+// const log = console.log.bind(console);
+const log = function(){};
+
+
 var _globals = {
   featureTested: false
 };
@@ -104,9 +108,12 @@ export default class Sticky extends Component {
   constructor(props, context) {
     super(props, context);
 
+    this._updatingBounds = false;
     this._shouldComponentUpdate = false;
+
     this._updatingState = false;
     this._key = 'sticky_' + Math.round(Math.random() * 1000);
+
 
     this.state = {
       sticky: false,
@@ -147,6 +154,7 @@ export default class Sticky extends Component {
 
     if (noCache !== true && this.state.bounds.height !== null) {
       if (clientRect.height === this.state.bounds.height && this.state.offsetHeight === offsetHeight) {
+        log('getBounds:: return cached values');
         return {
           offsetHeight: offsetHeight,
           style: this.state.style,
@@ -155,6 +163,8 @@ export default class Sticky extends Component {
         };
       }
     }
+
+    log('getBounds:: (re)calculate values');
 
     var style = getPositionStyle(this.refs.el);
     var child = this.refs.wrapper || this.refs.el;
@@ -221,9 +231,9 @@ export default class Sticky extends Component {
 
   }
 
-  updateBounds(shouldComponentUpdate = true, cb) {
+  updateBounds(noCache = true, shouldComponentUpdate = true, cb) {
     this._shouldComponentUpdate = shouldComponentUpdate;
-    this.setState(this.getBounds(true), ()=>{
+    this.setState(this.getBounds(noCache), ()=>{
       this._shouldComponentUpdate = true;
       if(cb){
         cb();
@@ -246,12 +256,12 @@ export default class Sticky extends Component {
     if (top !== null) {
       var offsetBottom = this.state.restrict.bottom - this.state.bounds.height - top;
       top = this.state.bounds.top - top;
-      if (this.state.sticky === false && scrollY >= top && scrollY <= offsetBottom) {
+      if (/*this.state.sticky === false &&*/ scrollY >= top && scrollY <= offsetBottom) {
         sticky = true;
         absolute = false;
-      } else if (this.state.sticky && (scrollY < top || scrollY > offsetBottom)) {
+      } else if (/*this.state.sticky &&*/ (scrollY < top || scrollY > offsetBottom)) {
         sticky = false;
-        absolute =  scrollY >= offsetBottom;
+        absolute =  scrollY > offsetBottom;
       }
     } else if (bottom !== null) {
 
@@ -259,41 +269,76 @@ export default class Sticky extends Component {
       var offsetTop = this.state.restrict.top + this.state.bounds.height - bottom;
       bottom = this.state.bounds.bottom + bottom;
 
-      if (this.state.sticky === false && scrollY <= bottom && scrollY >= offsetTop) {
+      if (/*this.state.sticky === false &&*/ scrollY <= bottom && scrollY >= offsetTop) {
         sticky = true;
         absolute = false;
-      } else if (this.state.sticky && (scrollY > bottom || scrollY < offsetTop)) {
+      } else if (/*this.state.sticky &&*/ (scrollY > bottom || scrollY < offsetTop)) {
         sticky = false;
-        absolute =  scrollY <= offsetTop;
+        absolute =  scrollY < offsetTop;
       }
     }
     return {sticky: sticky, absolute: absolute };
   }
 
-  updateStickyState() {
-    if (this._updatingState) {
-      return;
+  updateStickyState(bounds = true, cb) {
+    if(this._updatingState) {
+        return;
     }
     var values = this.getStickyState();
 
     if (values.sticky !== this.state.sticky || values.absolute !== this.state.absolute) {
       this._updatingState = true;
-      values = assign(values, this.getBounds());
-      this.setState(values, ()=> this._updatingState = false);
+      if(bounds){
+        values = assign(values, this.getBounds());
+      }
+      this.setState(values, ()=> {
+        this._updatingState = false;
+        if(typeof cb === 'function'){
+          cb();
+        }
+      });
+      return true;
+    }else if(typeof cb === 'function'){
+      cb();
     }
+    return false;
   }
 
   updateFixedOffset() {
-    if (this.state.sticky) {
-      this.setState({fixedOffset: this.scrollTarget.getBoundingClientRect().top + 'px'});
-    } else {
-      this.setState({fixedOffset: ''});
+    if (this.hasOwnScrollTarget && !this.canSticky) {
+
+      if (this.state.sticky) {
+        this.setState({fixedOffset: this.scrollTarget.getBoundingClientRect().top + 'px'});
+        if (!this.hasWindowScrollListener) {
+          this.hasWindowScrollListener = true;
+          FastScroll.getInstance(window).on('scroll:progress', this.updateFixedOffset);
+        }
+      } else {
+        this.setState({fixedOffset: ''});
+        if(this.hasWindowScrollListener) {
+          this.hasWindowScrollListener = false;
+          FastScroll.getInstance(window).off('scroll:progress', this.updateFixedOffset);
+        }
+      }
     }
   }
 
-  update(){
-    if(this.fastScroll) {
-      this.updateBounds( false, this.onScroll);
+  update(force = false) {
+
+    if(!this._updatingBounds){
+      this._updatingBounds = true;
+      this.updateBounds(true, true, ()=>{
+        this.fastScroll.updateScrollPosition();
+        this.updateBounds(force, true, ()=>{
+          this.fastScroll.updateScrollPosition();
+          var updateSticky = this.updateStickyState(false, ()=>{
+            if(force && !updateSticky){
+              this.forceUpdate();
+            }
+          });
+          this._updatingBounds = false;
+        });
+      });
     }
   }
 
@@ -343,18 +388,10 @@ export default class Sticky extends Component {
     }
   }
 
+
   onScroll(e) {
     this.updateStickyState();
-    if (this.hasOwnScrollTarget && !this.canSticky) {
-      this.updateFixedOffset();
-      if (this.state.sticky && !this.hasWindowScrollListener) {
-        this.hasWindowScrollListener = true;
-        FastScroll.getInstance(window).on('scroll:progress', this.updateFixedOffset);
-      } else if (!this.state.sticky && this.hasWindowScrollListener) {
-        this.hasWindowScrollListener = false;
-        FastScroll.getInstance(window).off('scroll:progress', this.updateFixedOffset);
-      }
-    }
+    this.updateFixedOffset();
   }
 
   onResize(e) {
