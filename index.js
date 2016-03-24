@@ -5,8 +5,7 @@ import classNames from 'classnames';
 import FastScroll from 'fastscroll';
 import assign from 'object-assign';
 
-// const log = console.log.bind(console);
-const log = function(){};
+var log = function(){};
 
 
 var _globals = {
@@ -94,6 +93,7 @@ export default class Sticky extends Component {
     fixedClass: React.PropTypes.string,
     stateClass:  React.PropTypes.string,
     disabled: React.PropTypes.bool,
+    debug: React.PropTypes.bool,
     tagName: React.PropTypes.string
   };
 
@@ -101,6 +101,7 @@ export default class Sticky extends Component {
     stickyClass: 'sticky',
     fixedClass: 'sticky-fixed',
     stateClass: 'is-sticky',
+    debug: false,
     disabled: false,
     tagName: 'div'
   };
@@ -113,6 +114,10 @@ export default class Sticky extends Component {
 
     this._updatingState = false;
     this._key = 'sticky_' + Math.round(Math.random() * 1000);
+
+    if(props.debug) {
+      log = console.log.bind(console);
+    }
 
 
     this.state = {
@@ -326,6 +331,7 @@ export default class Sticky extends Component {
   update(force = false) {
 
     if(!this._updatingBounds){
+      log('update():: force:' + force);
       this._updatingBounds = true;
       this.updateBounds(true, true, ()=>{
         this.fastScroll.updateScrollPosition();

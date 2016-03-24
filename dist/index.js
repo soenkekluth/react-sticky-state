@@ -32,7 +32,6 @@ function _possibleConstructorReturn(self, call) { if (!self) { throw new Referen
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-// const log = console.log.bind(console);
 var log = function log() {};
 
 var _globals = {
@@ -126,6 +125,10 @@ var Sticky = function (_Component) {
 
     _this._updatingState = false;
     _this._key = 'sticky_' + Math.round(Math.random() * 1000);
+
+    if (props.debug) {
+      log = console.log.bind(console);
+    }
 
     _this.state = {
       sticky: false,
@@ -357,6 +360,7 @@ var Sticky = function (_Component) {
 
 
       if (!this._updatingBounds) {
+        log('update():: force:' + force);
         this._updatingBounds = true;
         this.updateBounds(true, true, function () {
           _this4.fastScroll.updateScrollPosition();
@@ -539,12 +543,14 @@ Sticky.propTypes = {
   fixedClass: _react2.default.PropTypes.string,
   stateClass: _react2.default.PropTypes.string,
   disabled: _react2.default.PropTypes.bool,
+  debug: _react2.default.PropTypes.bool,
   tagName: _react2.default.PropTypes.string
 };
 Sticky.defaultProps = {
   stickyClass: 'sticky',
   fixedClass: 'sticky-fixed',
   stateClass: 'is-sticky',
+  debug: false,
   disabled: false,
   tagName: 'div'
 };
