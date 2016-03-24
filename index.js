@@ -44,6 +44,10 @@ function getSrollPosition() {
   return (window.scrollY || window.pageYOffset || 0);
 }
 
+function getDocumentHeight() {
+  return Math.max( document.body.scrollHeight, document.body.offsetHeight,  document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight );
+}
+
 function getAbsolutBoundingRect(el, fixedHeight) {
   var rect = el.getBoundingClientRect();
   var top = rect.top + getSrollPosition();
@@ -155,7 +159,7 @@ export default class Sticky extends Component {
   getBounds(noCache) {
 
     const clientRect  = this.getBoundingClientRect();
-    const offsetHeight = document.body.offsetHeight || 0;
+    const offsetHeight = getDocumentHeight();
 
     if (noCache !== true && this.state.bounds.height !== null) {
       if (clientRect.height === this.state.bounds.height && this.state.offsetHeight === offsetHeight) {

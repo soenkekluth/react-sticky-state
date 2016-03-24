@@ -70,6 +70,10 @@ function getSrollPosition() {
   return window.scrollY || window.pageYOffset || 0;
 }
 
+function getDocumentHeight() {
+  return Math.max(document.body.scrollHeight, document.body.offsetHeight, document.documentElement.clientHeight, document.documentElement.scrollHeight, document.documentElement.offsetHeight);
+}
+
 function getAbsolutBoundingRect(el, fixedHeight) {
   var rect = el.getBoundingClientRect();
   var top = rect.top + getSrollPosition();
@@ -165,7 +169,7 @@ var Sticky = function (_Component) {
     value: function getBounds(noCache) {
 
       var clientRect = this.getBoundingClientRect();
-      var offsetHeight = document.body.offsetHeight || 0;
+      var offsetHeight = getDocumentHeight();
 
       if (noCache !== true && this.state.bounds.height !== null) {
         if (clientRect.height === this.state.bounds.height && this.state.offsetHeight === offsetHeight) {
