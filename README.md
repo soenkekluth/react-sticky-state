@@ -51,10 +51,20 @@ Sticky either takes its only child and adds the behavior and classes to it or wr
 
 ```javascript
 static propTypes = {
-  stickyClass: React.PropTypes.string,
-  fixedClass: React.PropTypes.string,
-  stateClass:  React.PropTypes.string,
-  disabled: React.PropTypes.bool,
-  tagName : React.PropTypes.string
-};
+    stickyClass: React.PropTypes.string,
+    fixedClass: React.PropTypes.string,
+    stateClass:  React.PropTypes.string,
+    disabled: React.PropTypes.bool,
+    debug: React.PropTypes.bool,
+    tagName: React.PropTypes.string
+  };
+
+  static defaultProps = {
+    stickyClass: 'sticky',
+    fixedClass: 'sticky-fixed',
+    stateClass: 'is-sticky',
+    debug: false,
+    disabled: false,
+    tagName: 'div'
+  };
 ```
