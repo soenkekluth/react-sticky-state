@@ -1,6 +1,7 @@
 # react-sticky-state
-The React Sticky[State] Component makes native position:sticky statefull and polyfills the missing sticky browser feature 
+The React Sticky[State] Component makes native position:sticky statefull and polyfills the missing sticky browser feature. 
 
+Its the React version of https://github.com/soenkekluth/sticky-state
 
 todays browser do not all support the position:sticky feature (which by the way is beeing used (polyfilled) on pretty much every site you visit) - moreover the native supported feature itself comes without a readable state. something like a:hover => div:sticky to add different styles to the element in its sticky state - or to read the state if needed in javacript. 
 
