@@ -485,3 +485,4 @@ export default class Sticky extends Component {
     );
   }
 }
+export { Sticky as Sticky };
