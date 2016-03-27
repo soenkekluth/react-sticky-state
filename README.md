@@ -8,15 +8,18 @@ todays browser do not all support the position:sticky feature (which by the way 
 unlike almost all polyfills you can find in the wild StickyState is high perfomant. the calculations are reduced to a minimum by persisting several attributes.
 
 
-###Browser support
+### Browser support
 IE >= 9, *
 
-###install
+### demo
+https://rawgit.com/soenkekluth/react-sticky-state/master/examples/index.html
+
+### install
 ```
 npm install react-sticky-state
 ```
 
-###css
+### css
 your css should contain the following lines: 
 (you can specify the classNames in js)
 ```css
@@ -34,7 +37,7 @@ your css should contain the following lines:
 }
 ```
 
-###js
+### js
 ```javascript
 
 import Sticky from 'react-sticky-state';
@@ -48,7 +51,7 @@ import Sticky from 'react-sticky-state';
 
 Sticky either takes its only child and adds the behavior and classes to it or wrappes all children inside an element if there are more than one. the tagname can be defined by props.
 
-###possible props 
+### possible props 
 
 ```javascript
 static propTypes = {
