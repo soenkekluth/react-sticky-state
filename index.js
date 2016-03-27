@@ -7,7 +7,6 @@ import assign from 'object-assign';
 
 var log = function(){};
 
-
 var _globals = {
   featureTested: false
 };
@@ -353,7 +352,8 @@ export default class Sticky extends Component {
   }
 
   initialize() {
-    this.scrollTarget = (window.getComputedStyle(this.refs.el.parentNode).overflow !== 'auto' ? window : this.refs.el.parentNode);
+    var child = this.refs.wrapper || this.refs.el;
+    this.scrollTarget = (window.getComputedStyle(child.parentNode).overflow !== 'auto' ? window : child.parentNode);
     this.hasOwnScrollTarget = this.scrollTarget !== window;
     if (this.hasOwnScrollTarget) {
       this.updateFixedOffset = ::this.updateFixedOffset;
