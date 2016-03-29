@@ -92,18 +92,24 @@ function getPreviousElementSibling(el) {
 export default class Sticky extends Component {
 
   static propTypes = {
+    stickyWrapperClass: React.PropTypes.string,
     stickyClass: React.PropTypes.string,
     fixedClass: React.PropTypes.string,
     stateClass:  React.PropTypes.string,
+    disabledClass:  React.PropTypes.string,
+    absoluteClass:  React.PropTypes.string,
     disabled: React.PropTypes.bool,
     debug: React.PropTypes.bool,
     tagName: React.PropTypes.string
   };
 
   static defaultProps = {
+    stickyWrapperClass: 'sticky-wrap',
     stickyClass: 'sticky',
     fixedClass: 'sticky-fixed',
     stateClass: 'is-sticky',
+    disabledClass: 'sticky-disabled',
+    absoluteClass: 'is-absolute',
     debug: false,
     disabled: false,
     tagName: 'div'
@@ -439,12 +445,12 @@ export default class Sticky extends Component {
   }
 
   render() {
-
     let element = React.Children.only(this.props.children);
+    const {stickyWrapperClass, stickyClass, fixedClass, stateClass, disabledClass, absoluteClass, tagName} = this.props;
 
     var style;
     const refName = 'el';
-    const className = classNames({'sticky': !this.state.disabled, 'sticky-disabled': this.state.disabled}, {'sticky-fixed': !this.canSticky}, {'is-sticky': this.state.sticky && !this.state.disabled}, {'is-absolute': this.state.absolute});
+    const className = classNames({[stickyClass]: !this.state.disabled, [disabledClass]: this.state.disabled}, {[fixedClass]: !this.canSticky}, {[stateClass]: this.state.sticky && !this.state.disabled}, {[absoluteClass]: this.state.absolute});
 
     if(!this.canSticky){
       if(this.state.absolute){
@@ -479,7 +485,7 @@ export default class Sticky extends Component {
       style.position = 'relative';
     }
     return (
-      <div ref='wrapper' className='sticky-wrap' style={style}>
+      <div ref='wrapper' className={stickyWrapperClass} style={style}>
            {element}
        </div>
     );

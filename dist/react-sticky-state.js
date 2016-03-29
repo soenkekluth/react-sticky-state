@@ -29,6 +29,8 @@ var _objectAssign2 = _interopRequireDefault(_objectAssign);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
 
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
@@ -487,12 +489,23 @@ var Sticky = function (_Component) {
   }, {
     key: 'render',
     value: function render() {
+      var _classNames;
 
+      console.log(this.props);
       var element = _react2.default.Children.only(this.props.children);
+      var _props = this.props;
+      var stickyWrapperClass = _props.stickyWrapperClass;
+      var stickyClass = _props.stickyClass;
+      var fixedClass = _props.fixedClass;
+      var stateClass = _props.stateClass;
+      var disabledClass = _props.disabledClass;
+      var absoluteClass = _props.absoluteClass;
+      var tagName = _props.tagName;
+
 
       var style;
       var refName = 'el';
-      var className = (0, _classnames2.default)({ 'sticky': !this.state.disabled, 'sticky-disabled': this.state.disabled }, { 'sticky-fixed': !this.canSticky }, { 'is-sticky': this.state.sticky && !this.state.disabled }, { 'is-absolute': this.state.absolute });
+      var className = (0, _classnames2.default)((_classNames = {}, _defineProperty(_classNames, stickyClass, !this.state.disabled), _defineProperty(_classNames, disabledClass, this.state.disabled), _classNames), _defineProperty({}, fixedClass, !this.canSticky), _defineProperty({}, stateClass, this.state.sticky && !this.state.disabled), _defineProperty({}, absoluteClass, this.state.absolute));
 
       if (!this.canSticky) {
         if (this.state.absolute) {
@@ -532,7 +545,7 @@ var Sticky = function (_Component) {
       }
       return _react2.default.createElement(
         'div',
-        { ref: 'wrapper', className: 'sticky-wrap', style: style },
+        { ref: 'wrapper', className: stickyWrapperClass, style: style },
         element
       );
     }
@@ -547,17 +560,23 @@ var Sticky = function (_Component) {
 }(_react.Component);
 
 Sticky.propTypes = {
+  stickyWrapperClass: _react2.default.PropTypes.string,
   stickyClass: _react2.default.PropTypes.string,
   fixedClass: _react2.default.PropTypes.string,
   stateClass: _react2.default.PropTypes.string,
+  disabledClass: _react2.default.PropTypes.string,
+  absoluteClass: _react2.default.PropTypes.string,
   disabled: _react2.default.PropTypes.bool,
   debug: _react2.default.PropTypes.bool,
   tagName: _react2.default.PropTypes.string
 };
 Sticky.defaultProps = {
+  stickyWrapperClass: 'sticky-wrap',
   stickyClass: 'sticky',
   fixedClass: 'sticky-fixed',
   stateClass: 'is-sticky',
+  disabledClass: 'sticky-disabled',
+  absoluteClass: 'is-absolute',
   debug: false,
   disabled: false,
   tagName: 'div'
