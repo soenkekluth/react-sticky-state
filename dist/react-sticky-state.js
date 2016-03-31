@@ -491,7 +491,6 @@ var Sticky = function (_Component) {
     value: function render() {
       var _classNames;
 
-      console.log(this.props);
       var element = _react2.default.Children.only(this.props.children);
       var _props = this.props;
       var stickyWrapperClass = _props.stickyWrapperClass;
