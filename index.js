@@ -124,7 +124,7 @@ export default class Sticky extends Component {
     this._updatingState = false;
     this._key = 'sticky_' + Math.round(Math.random() * 1000);
 
-    if(props.debug) {
+    if(props.debug === true) {
       log = console.log.bind(console);
     }
 

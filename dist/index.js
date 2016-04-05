@@ -133,7 +133,7 @@ var Sticky = function (_Component) {
     _this._updatingState = false;
     _this._key = 'sticky_' + Math.round(Math.random() * 1000);
 
-    if (props.debug) {
+    if (props.debug === true) {
       log = console.log.bind(console);
     }
 
@@ -489,7 +489,6 @@ var Sticky = function (_Component) {
     value: function render() {
       var _classNames;
 
-      console.log(this.props);
       var element = _react2.default.Children.only(this.props.children);
       var _props = this.props;
       var stickyWrapperClass = _props.stickyWrapperClass;
