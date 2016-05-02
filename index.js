@@ -418,6 +418,10 @@ export default class Sticky extends Component {
     return this._shouldComponentUpdate;
   }
 
+  // componentWillUpdate(nextProps, nextState){
+
+  // }
+
   componentWillReceiveProps(props) {
     if (props.disabled !== this.state.disabled) {
       this.setState({
@@ -434,9 +438,13 @@ export default class Sticky extends Component {
     this._shouldComponentUpdate = false;
     this.removeSrollHandler();
     this.removeResizeHandler();
+  }
+
+
+  componentDidUnmount() {
 
     //TODO optimize
-    if (!this.fastScroll.dispatcher.hasListeners()) {
+    if (this.fastScroll && this.fastScroll.dispatcher && !this.fastScroll.dispatcher.hasListeners()) {
       this.fastScroll.destroy();
       // this.onScroll = null;
     }
@@ -446,7 +454,8 @@ export default class Sticky extends Component {
 
   render() {
     let element = React.Children.only(this.props.children);
-    const {stickyWrapperClass, stickyClass, fixedClass, stateClass, disabledClass, absoluteClass, tagName} = this.props;
+
+    const {stickyWrapperClass, stickyClass, fixedClass, stateClass, disabledClass, absoluteClass, disabled, debug, tagName, ...props} = this.props;
 
     var style;
     const refName = 'el';
@@ -470,7 +479,7 @@ export default class Sticky extends Component {
       element = React.cloneElement(element, {ref: refName, key: this._key, style:style, className: classNames(element.props.className, className)});
     }else {
       const Comp = this.props.tagName;
-      element = <Comp ref={refName} key={this._key} style={style} className={className}>{this.props.children}</Comp>;
+      element = <Comp ref={refName} key={this._key} style={style} className={className} {...props}>{this.props.children}</Comp>;
     }
 
     if (this.canSticky) {
