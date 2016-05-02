@@ -486,10 +486,6 @@ var Sticky = function (_Component) {
       this._shouldComponentUpdate = false;
       this.removeSrollHandler();
       this.removeResizeHandler();
-    }
-  }, {
-    key: 'componentDidUnmount',
-    value: function componentDidUnmount() {
 
       //TODO optimize
       if (this.fastScroll && this.fastScroll.dispatcher && !this.fastScroll.dispatcher.hasListeners()) {

@@ -438,10 +438,6 @@ export default class Sticky extends Component {
     this._shouldComponentUpdate = false;
     this.removeSrollHandler();
     this.removeResizeHandler();
-  }
-
-
-  componentDidUnmount() {
 
     //TODO optimize
     if (this.fastScroll && this.fastScroll.dispatcher && !this.fastScroll.dispatcher.hasListeners()) {
@@ -462,7 +458,7 @@ export default class Sticky extends Component {
     const className = classNames({[stickyClass]: !this.state.disabled, [disabledClass]: this.state.disabled}, {[fixedClass]: !this.canSticky}, {[stateClass]: this.state.sticky && !this.state.disabled}, {[absoluteClass]: this.state.absolute});
 
     if(!this.canSticky){
-      if(this.state.absolute){
+      if(this.state.absolute) {
 
         style = {
           marginTop: this.state.style.top !== null ? ( this.state.restrict.height - (this.state.bounds.height + this.state.style.top) + (this.state.restrict.top - this.state.bounds.top)) + 'px' : '',
