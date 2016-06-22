@@ -40,7 +40,8 @@ your css should contain the following lines:
 ### js
 ```javascript
 
-import Sticky from 'react-sticky-state';
+import Sticky from 'react-sticky-state'; 
+//ES5: var Sticky = require('react-sticky-state').default;
 
 
 <Sticky>
