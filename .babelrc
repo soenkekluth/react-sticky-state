@@ -5,6 +5,8 @@
     "es2015"
   ],
   "plugins": [
-    "transform-class-properties"
-  ]
+      "transform-class-properties",
+      "transform-class-constructor-call",
+      "add-module-exports"
+    ]
 }
