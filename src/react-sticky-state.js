@@ -76,6 +76,7 @@ const initialState = {
     height: null,
     width: null
   },
+  scrollClass: null,
   initialStyle: null,
   style: {
     top: null,
@@ -296,7 +297,7 @@ export default class ReactStickyState extends Component {
     if (values.sticky !== this.state.sticky || values.absolute !== this.state.absolute) {
       this._updatingState = true;
       if (bounds) {
-        values = assign(values, this.getBounds());
+        values = assign(values, this.getBounds(), {scrollClass : this.getScrollClass()});
       }
       this.setState(values, () => {
         this._updatingState = false;
@@ -383,7 +384,7 @@ export default class ReactStickyState extends Component {
         this.scroll.on('scroll:up', this.onScrollDirection);
         this.scroll.on('scroll:down', this.onScrollDirection);
         if (!this.props.scrollClass.persist) {
-          this.scroll.on('scroll:stop', ::this.render);
+          this.scroll.on('scroll:stop', this.onScrollDirection);
         }
       }
     }
@@ -421,22 +422,24 @@ export default class ReactStickyState extends Component {
   }
 
 
-  getScrollClassObj(obj) {
-    obj = obj || {};
-    var direction = (this.scroll.y <= 0 || this.scroll.y + this.scroll.clientHeight >= this.scroll.scrollHeight) ? 0 : this.scroll.directionY;
-    obj[this.props.scrollClass.up] = direction < 0;
-    obj[this.props.scrollClass.down] = direction > 0;
-    return obj;
+  getScrollClass(){
+    if(this.props.scrollClass.up || this.props.scrollClass.down){
+
+      var direction = (this.scroll.y <= 0 || this.scroll.y + this.scroll.clientHeight >= this.scroll.scrollHeight) ? 0 : this.scroll.directionY;
+      var scrollClass = direction < 0 ? this.props.scrollClass.up : this.props.scrollClass.down;
+      scrollClass = direction === 0 ? null : scrollClass;
+      return scrollClass;
+    }
+    return null;
   }
 
-
   onScrollDirection(e) {
-    console.log(e, this.scroll.directionY)
-    if (this.state.sticky || e.type === Scroll.EVENT_SCROLL_STOP) {
 
-
-        this.refs.el.className = classNames(this.refs.el.className, this.getScrollClassObj());
-
+    if (this.state.sticky ||  e && e.type === Scroll.EVENT_SCROLL_STOP) {
+      this.setState({
+        scrollClass : this.getScrollClass()
+      })
+        // this.refs.el.className = classNames(this.refs.el.className, this.getScrollClassObj());
     }
   }
 
@@ -496,7 +499,7 @@ export default class ReactStickyState extends Component {
   render() {
     let element = React.Children.only(this.props.children);
 
-    const { stickyWrapperClass, stickyClass, scrollClass, fixedClass, stateClass, disabledClass, absoluteClass, disabled, debug, tagName, ...props } = this.props;
+    const { stickyWrapperClass, stickyClass, fixedClass, stateClass, disabledClass, absoluteClass, disabled, debug, tagName, ...props } = this.props;
 
     var style;
     const refName = 'el';
@@ -504,9 +507,7 @@ export default class ReactStickyState extends Component {
       {[stickyClass]: !this.state.disabled, [disabledClass]: this.state.disabled },
       {[fixedClass]: !Can.sticky },
       {[stateClass]: this.state.sticky && !this.state.disabled },
-      {[scrollClass.up]: this.state.sticky && this.scroll.directionY > 0 },
-      {[scrollClass.down]: this.state.sticky && this.scroll.directionY > 0 },
-      {[absoluteClass]: this.state.absolute });
+      {[absoluteClass]: this.state.absolute }, this.state.scrollClass);
 
 
 
@@ -528,10 +529,12 @@ export default class ReactStickyState extends Component {
       element = React.cloneElement(element, { ref: refName, key: this._key, style: style, className: classNames(element.props.className, className) });
     } else {
       const Comp = this.props.tagName;
-      element = < Comp ref = { refName }
+      element = <Comp ref = { refName }
       key = { this._key }
       style = { style }
-      className = { className } {...props } > { this.props.children } < /Comp>;
+      className = { className } {...props }>
+        { this.props.children }
+      </Comp>;
     }
 
     if (Can.sticky) {
@@ -550,15 +553,12 @@ export default class ReactStickyState extends Component {
     if (this.state.absolute) {
       style.position = 'relative';
     }
-    return ( < div ref = 'wrapper'
+    return ( <div ref = 'wrapper'
       className = { stickyWrapperClass }
-      style = { style } > { element } < /div>
+      style = { style }> { element } </div>
     );
   }
 }
-
-
-export { ReactStickyState as Sticky };
 
 
 var _canSticky = null;

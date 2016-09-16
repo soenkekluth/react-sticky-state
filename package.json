@@ -6,12 +6,14 @@
   "jsnext:main": "src/react-sticky-state.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build-debug": "browserify -t [ babelify --presets [ es2015 react stage-0] --plugins [ transform-class-properties ] ] -t browserify-shim ./src/react-sticky-state.js --standalone ReactStickyState -o dist/react-sticky-state.min.js",
-    "build": "npm run build-debug && uglifyjs dist/react-sticky-state.js -o dist/react-sticky-state.min.js",
-    "dist": "npm run babel && npm run build",
-    "babel": "babel ./src -d ./dist",
-    "start": "npm run build-debug && concurrently --kill-others \"watchify -d -t [ babelify --presets [ es2015 react stage-0] --plugins [ transform-class-properties ] ] -t browserify-shim ./src/react-sticky-state.js --s ReactStickyState -o dist/react-sticky-state.min.js -v\" \"npm run server\"",
-    "server": "browser-sync start --server --no-ghost-mode --directory --files 'examples/**/**, dist/*.js' --startPath examples/index.html"
+    "build-js": "browserify --fast -e src/react-sticky-state.js -d --standalone ReactStickyState -t babelify -t browserify-shim | derequire | exorcist dist/react-sticky-state.min.js.map > dist/react-sticky-state.min.js",
+    "dist-js": "BABEL_ENV=production NODE_ENV=production browserify -e src/react-sticky-state.js --standalone ReactStickyState -t babelify -t browserify-shim | derequire > dist/react-sticky-state.min.js",
+    "dist-js-min": "uglifyjs -cmv dist/react-sticky-state.min.js -o dist/react-sticky-state.min.js",
+    "dist": "cp src/sticky-state.css dist/ && npm run dist-js && npm run dist-js-min && npm run build-lib",
+    "start": "run-p watch-js server",
+    "build-lib": "BABEL_ENV=production babel src -d dist",
+    "watch-js": "watchify -d --poll=100 --fast --standalone ReactStickyState -e src/react-sticky-state.js -t babelify -t browserify-shim -o 'exorcist dist/react-sticky-state.min.js.map > dist/react-sticky-state.min.js' -v",
+    "server": "browser-sync start --no-ghost-mode --server --directory --files 'examples/**/**, dist/*.js' --startPath examples/index.html"
   },
   "repository": {
     "type": "git",
@@ -47,7 +49,9 @@
     "browser-sync": "2.16.0",
     "browserify": "13.1.0",
     "browserify-shim": "3.8.12",
-    "concurrently": "2.2.0",
+    "derequire": "2.0.3",
+    "exorcist": "0.4.0",
+    "npm-run-all": "3.1.0",
     "react": "15.3.1",
     "uglifyjs": "2.4.10",
     "watchify": "3.7.0"

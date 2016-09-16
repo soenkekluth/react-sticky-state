@@ -3,7 +3,6 @@
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.Sticky = undefined;
 
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
@@ -105,6 +104,7 @@ var initialState = {
     height: null,
     width: null
   },
+  scrollClass: null,
   initialStyle: null,
   style: {
     top: null,
@@ -313,7 +313,7 @@ var ReactStickyState = function (_Component) {
       if (values.sticky !== this.state.sticky || values.absolute !== this.state.absolute) {
         this._updatingState = true;
         if (bounds) {
-          values = (0, _objectAssign2.default)(values, this.getBounds());
+          values = (0, _objectAssign2.default)(values, this.getBounds(), { scrollClass: this.getScrollClass() });
         }
         this.setState(values, function () {
           _this3._updatingState = false;
@@ -409,7 +409,7 @@ var ReactStickyState = function (_Component) {
           this.scroll.on('scroll:up', this.onScrollDirection);
           this.scroll.on('scroll:down', this.onScrollDirection);
           if (!this.props.scrollClass.persist) {
-            this.scroll.on('scroll:stop', this.render.bind(this));
+            this.scroll.on('scroll:stop', this.onScrollDirection);
           }
         }
       }
@@ -449,21 +449,26 @@ var ReactStickyState = function (_Component) {
       }
     }
   }, {
-    key: 'getScrollClassObj',
-    value: function getScrollClassObj(obj) {
-      obj = obj || {};
-      var direction = this.scroll.y <= 0 || this.scroll.y + this.scroll.clientHeight >= this.scroll.scrollHeight ? 0 : this.scroll.directionY;
-      obj[this.props.scrollClass.up] = direction < 0;
-      obj[this.props.scrollClass.down] = direction > 0;
-      return obj;
+    key: 'getScrollClass',
+    value: function getScrollClass() {
+      if (this.props.scrollClass.up || this.props.scrollClass.down) {
+
+        var direction = this.scroll.y <= 0 || this.scroll.y + this.scroll.clientHeight >= this.scroll.scrollHeight ? 0 : this.scroll.directionY;
+        var scrollClass = direction < 0 ? this.props.scrollClass.up : this.props.scrollClass.down;
+        scrollClass = direction === 0 ? null : scrollClass;
+        return scrollClass;
+      }
+      return null;
     }
   }, {
     key: 'onScrollDirection',
     value: function onScrollDirection(e) {
-      console.log(e, this.scroll.directionY);
-      if (this.state.sticky || e.type === _scrollEvents2.default.EVENT_SCROLL_STOP) {
 
-        this.refs.el.className = (0, _classnames2.default)(this.refs.el.className, this.getScrollClassObj());
+      if (this.state.sticky || e && e.type === _scrollEvents2.default.EVENT_SCROLL_STOP) {
+        this.setState({
+          scrollClass: this.getScrollClass()
+        });
+        // this.refs.el.className = classNames(this.refs.el.className, this.getScrollClassObj());
       }
     }
   }, {
@@ -539,7 +544,6 @@ var ReactStickyState = function (_Component) {
       var _props = this.props;
       var stickyWrapperClass = _props.stickyWrapperClass;
       var stickyClass = _props.stickyClass;
-      var scrollClass = _props.scrollClass;
       var fixedClass = _props.fixedClass;
       var stateClass = _props.stateClass;
       var disabledClass = _props.disabledClass;
@@ -548,11 +552,11 @@ var ReactStickyState = function (_Component) {
       var debug = _props.debug;
       var tagName = _props.tagName;
 
-      var props = _objectWithoutProperties(_props, ['stickyWrapperClass', 'stickyClass', 'scrollClass', 'fixedClass', 'stateClass', 'disabledClass', 'absoluteClass', 'disabled', 'debug', 'tagName']);
+      var props = _objectWithoutProperties(_props, ['stickyWrapperClass', 'stickyClass', 'fixedClass', 'stateClass', 'disabledClass', 'absoluteClass', 'disabled', 'debug', 'tagName']);
 
       var style;
       var refName = 'el';
-      var className = (0, _classnames2.default)((_classNames = {}, _defineProperty(_classNames, stickyClass, !this.state.disabled), _defineProperty(_classNames, disabledClass, this.state.disabled), _classNames), _defineProperty({}, fixedClass, !Can.sticky), _defineProperty({}, stateClass, this.state.sticky && !this.state.disabled), _defineProperty({}, scrollClass.up, this.state.sticky && this.scroll.directionY > 0), _defineProperty({}, scrollClass.down, this.state.sticky && this.scroll.directionY > 0), _defineProperty({}, absoluteClass, this.state.absolute));
+      var className = (0, _classnames2.default)((_classNames = {}, _defineProperty(_classNames, stickyClass, !this.state.disabled), _defineProperty(_classNames, disabledClass, this.state.disabled), _classNames), _defineProperty({}, fixedClass, !Can.sticky), _defineProperty({}, stateClass, this.state.sticky && !this.state.disabled), _defineProperty({}, absoluteClass, this.state.absolute), this.state.scrollClass);
 
       if (!Can.sticky) {
         if (this.state.absolute) {
@@ -578,9 +582,7 @@ var ReactStickyState = function (_Component) {
             key: this._key,
             style: style,
             className: className }, props),
-          ' ',
-          this.props.children,
-          ' '
+          this.props.children
         );
       }
 
@@ -645,7 +647,6 @@ ReactStickyState.defaultProps = {
   }
 };
 exports.default = ReactStickyState;
-exports.Sticky = ReactStickyState;
 
 
 var _canSticky = null;
@@ -689,3 +690,5 @@ var Can = function () {
 
   return Can;
 }();
+
+module.exports = exports['default'];
