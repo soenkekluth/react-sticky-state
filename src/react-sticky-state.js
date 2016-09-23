@@ -2,16 +2,53 @@
 
 import React, { Component, PropTypes } from 'react';
 import classNames from 'classnames';
-import Scroll from 'scroll-events';
+import ScrollFeatures from 'scrollfeatures';
 import assign from 'object-assign';
 
 var log = function() {};
 
 
 
+const initialState = {
+  sticky: false,
+  absolute: false,
+  fixedOffset: '',
+  offsetHeight: 0,
+  bounds: {
+    top: null,
+    left: null,
+    right: null,
+    bottom: null,
+    height: null,
+    width: null
+  },
+  restrict: {
+    top: null,
+    left: null,
+    right: null,
+    bottom: null,
+    height: null,
+    width: null
+  },
+  scrollClass: null,
+  initialStyle: null,
+  style: {
+    top: null,
+    bottom: null,
+    left: null,
+    right: null,
+    'margin-top': 0,
+    'margin-bottom': 0,
+    'margin-left': 0,
+    'margin-right': 0
+  },
+  disabled: false
+};
+
+
 const getAbsolutBoundingRect = (el, fixedHeight) => {
   var rect = el.getBoundingClientRect();
-  var top = rect.top + Scroll.windowScrollY;
+  var top = rect.top + ScrollFeatures.windowScrollY;
   var height = fixedHeight || rect.height;
   return {
     top: top,
@@ -52,43 +89,6 @@ const getPreviousElementSibling = el => {
     prev = getPreviousElementSibling(prev);
   }
   return prev;
-};
-
-
-const initialState = {
-  sticky: false,
-  absolute: false,
-  fixedOffset: '',
-  offsetHeight: 0,
-  bounds: {
-    top: null,
-    left: null,
-    right: null,
-    bottom: null,
-    height: null,
-    width: null
-  },
-  restrict: {
-    top: null,
-    left: null,
-    right: null,
-    bottom: null,
-    height: null,
-    width: null
-  },
-  scrollClass: null,
-  initialStyle: null,
-  style: {
-    top: null,
-    bottom: null,
-    left: null,
-    right: null,
-    'margin-top': 0,
-    'margin-bottom': 0,
-    'margin-left': 0,
-    'margin-right': 0
-  },
-  disabled: false
 };
 
 export default class ReactStickyState extends Component {
@@ -149,7 +149,7 @@ export default class ReactStickyState extends Component {
   getBounds(noCache) {
 
     var clientRect = this.getBoundingClientRect();
-    var offsetHeight = Scroll.documentHeight;
+    var offsetHeight = ScrollFeatures.documentHeight;
     noCache = noCache === true;
 
     if (noCache !== true && this.state.bounds.height !== null) {
@@ -297,7 +297,7 @@ export default class ReactStickyState extends Component {
     if (values.sticky !== this.state.sticky || values.absolute !== this.state.absolute) {
       this._updatingState = true;
       if (bounds) {
-        values = assign(values, this.getBounds(), {scrollClass : this.getScrollClass()});
+        values = assign(values, this.getBounds(), { scrollClass: this.getScrollClass() });
       }
       this.setState(values, () => {
         this._updatingState = false;
@@ -319,25 +319,18 @@ export default class ReactStickyState extends Component {
         this.setState({ fixedOffset: this.scrollTarget.getBoundingClientRect().top + 'px' });
         if (!this.hasWindowScrollListener) {
           this.hasWindowScrollListener = true;
-          Scroll.getInstance(window).on('scroll:progress', this.updateFixedOffset);
+          ScrollFeatures.getInstance(window).on('scroll:progress', this.updateFixedOffset);
         }
       } else {
         this.setState({ fixedOffset: '' });
         if (this.hasWindowScrollListener) {
           this.hasWindowScrollListener = false;
-          Scroll.getInstance(window).off('scroll:progress', this.updateFixedOffset);
+          ScrollFeatures.getInstance(window).off('scroll:progress', this.updateFixedOffset);
         }
       }
     }
   }
 
-  /*
-  update() {
-    this.scroll.updateScrollPosition();
-    this.updateBounds(true, true);
-    this.updateStickyState(false);
-  }
-   */
 
   update(force = false) {
 
@@ -361,7 +354,7 @@ export default class ReactStickyState extends Component {
 
   initialize() {
     var child = this.refs.wrapper || this.refs.el;
-    this.scrollTarget = Scroll.getScrollParent(child);
+    this.scrollTarget = ScrollFeatures.getScrollParent(child);
     this.hasOwnScrollTarget = this.scrollTarget !== window;
     if (this.hasOwnScrollTarget) {
       this.updateFixedOffset = ::this.updateFixedOffset;
@@ -374,13 +367,13 @@ export default class ReactStickyState extends Component {
 
   addSrollHandler() {
     if (!this.scroll) {
-      this.scroll = Scroll.getInstance(this.scrollTarget);
+      this.scroll = ScrollFeatures.getInstance(this.scrollTarget);
       this.onScroll = ::this.onScroll;
       this.onScrollDirection = ::this.onScrollDirection;
       this.scroll.on('scroll:start', this.onScroll);
       this.scroll.on('scroll:progress', this.onScroll);
       this.scroll.on('scroll:stop', this.onScroll);
-      if(this.props.scrollClass.up || this.props.scrollClass.down){
+      if (this.props.scrollClass.up || this.props.scrollClass.down) {
         this.scroll.on('scroll:up', this.onScrollDirection);
         this.scroll.on('scroll:down', this.onScrollDirection);
         if (!this.props.scrollClass.persist) {
@@ -398,7 +391,12 @@ export default class ReactStickyState extends Component {
       this.scroll.off('scroll:up', this.onScrollDirection);
       this.scroll.off('scroll:down', this.onScrollDirection);
       this.scroll.off('scroll:stop', this.onScrollDirection);
-      this.scroll.destroy();
+      if (!this.scroll.hasListeners()) {
+        this.scroll.destroy();
+
+      }
+      this.onScroll = null;
+      this.onScrollDirection = null;
       this.scroll = null;
     }
   }
@@ -422,8 +420,8 @@ export default class ReactStickyState extends Component {
   }
 
 
-  getScrollClass(){
-    if(this.props.scrollClass.up || this.props.scrollClass.down){
+  getScrollClass() {
+    if (this.props.scrollClass.up || this.props.scrollClass.down) {
 
       var direction = (this.scroll.y <= 0 || this.scroll.y + this.scroll.clientHeight >= this.scroll.scrollHeight) ? 0 : this.scroll.directionY;
       var scrollClass = direction < 0 ? this.props.scrollClass.up : this.props.scrollClass.down;
@@ -435,10 +433,10 @@ export default class ReactStickyState extends Component {
 
   onScrollDirection(e) {
 
-    if (this.state.sticky ||  e && e.type === Scroll.EVENT_SCROLL_STOP) {
+    if (this.state.sticky || e && e.type === ScrollFeatures.EVENT_SCROLL_STOP) {
       this.setState({
-        scrollClass : this.getScrollClass()
-      })
+          scrollClass: this.getScrollClass()
+        })
         // this.refs.el.className = classNames(this.refs.el.className, this.getScrollClassObj());
     }
   }
@@ -450,10 +448,10 @@ export default class ReactStickyState extends Component {
       this.updateFixedOffset();
       if (this.state.sticky && !this.hasWindowScrollListener) {
         this.hasWindowScrollListener = true;
-        Scroll.getInstance(window).on('scroll:progress', this.updateFixedOffset);
+        ScrollFeatures.getInstance(window).on('scroll:progress', this.updateFixedOffset);
       } else if (!this.state.sticky && this.hasWindowScrollListener) {
         this.hasWindowScrollListener = false;
-        Scroll.getInstance(window).off('scroll:progress', this.updateFixedOffset);
+        ScrollFeatures.getInstance(window).off('scroll:progress', this.updateFixedOffset);
       }
     }
   }
@@ -466,9 +464,6 @@ export default class ReactStickyState extends Component {
     return this._shouldComponentUpdate;
   }
 
-  // componentWillUpdate(nextProps, nextState){
-
-  // }
 
   componentWillReceiveProps(props) {
     if (props.disabled !== this.state.disabled) {
@@ -486,13 +481,6 @@ export default class ReactStickyState extends Component {
     this._shouldComponentUpdate = false;
     this.removeSrollHandler();
     this.removeResizeHandler();
-
-    //TODO optimize
-    if (this.scroll && this.scroll.dispatcher && !this.scroll.dispatcher.hasListeners()) {
-      this.scroll.destroy();
-      // this.onScroll = null;
-    }
-    this.scroll = null;
     this.scrollTarget = null;
   }
 
@@ -503,11 +491,11 @@ export default class ReactStickyState extends Component {
 
     var style;
     const refName = 'el';
-    const className = classNames(
-      {[stickyClass]: !this.state.disabled, [disabledClass]: this.state.disabled },
-      {[fixedClass]: !Can.sticky },
-      {[stateClass]: this.state.sticky && !this.state.disabled },
-      {[absoluteClass]: this.state.absolute }, this.state.scrollClass);
+    const className = classNames({
+      [stickyClass]: !this.state.disabled, [disabledClass]: this.state.disabled }, {
+      [fixedClass]: !Can.sticky }, {
+      [stateClass]: this.state.sticky && !this.state.disabled }, {
+      [absoluteClass]: this.state.absolute }, this.state.scrollClass);
 
 
 
@@ -532,9 +520,7 @@ export default class ReactStickyState extends Component {
       element = <Comp ref = { refName }
       key = { this._key }
       style = { style }
-      className = { className } {...props }>
-        { this.props.children }
-      </Comp>;
+      className = { className } {...props }> { this.props.children } </Comp>;
     }
 
     if (Can.sticky) {

@@ -1,6 +1,6 @@
 {
   "name": "react-sticky-state",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "React StickyState Component makes native position:sticky statefull and polyfills the missing sticky browser feature",
   "main": "dist/react-sticky-state.js",
   "jsnext:main": "src/react-sticky-state.js",
@@ -52,13 +52,13 @@
     "derequire": "2.0.3",
     "exorcist": "0.4.0",
     "npm-run-all": "3.1.0",
-    "react": "15.3.1",
+    "react": "15.3.2",
     "uglifyjs": "2.4.10",
     "watchify": "3.7.0"
   },
   "dependencies": {
     "classnames": "2.2.5",
     "object-assign": "4.1.0",
-    "scroll-events": "1.1.2"
+    "scrollfeatures": "1.1.0"
   }
 }
