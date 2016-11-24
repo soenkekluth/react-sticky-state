@@ -1,12 +1,11 @@
-'use strict';
-
 import React, { Component, PropTypes } from 'react';
 import classNames from 'classnames';
 import ScrollFeatures from 'scrollfeatures';
 import assign from 'object-assign';
 
-var log = function() {};
+import Can from './featureDetect';
 
+var log = function() {};
 
 
 const initialState = {
@@ -30,7 +29,8 @@ const initialState = {
     height: null,
     width: null
   },
-  scrollClass: null,
+  wrapperStyle: null,
+  elementStyle: null,
   initialStyle: null,
   style: {
     top: null,
@@ -45,10 +45,9 @@ const initialState = {
   disabled: false
 };
 
-
 const getAbsolutBoundingRect = (el, fixedHeight) => {
   var rect = el.getBoundingClientRect();
-  var top = rect.top + ScrollFeatures.windowScrollY;
+  var top = rect.top + ScrollFeatures.windowY;
   var height = fixedHeight || rect.height;
   return {
     top: top,
@@ -91,10 +90,12 @@ const getPreviousElementSibling = el => {
   return prev;
 };
 
-export default class ReactStickyState extends Component {
+
+class ReactStickyState extends Component {
+
 
   static propTypes = {
-    stickyWrapperClass: PropTypes.string,
+    wrapperClass: PropTypes.string,
     stickyClass: PropTypes.string,
     fixedClass: PropTypes.string,
     stateClass: PropTypes.string,
@@ -102,43 +103,52 @@ export default class ReactStickyState extends Component {
     absoluteClass: PropTypes.string,
     disabled: PropTypes.bool,
     debug: PropTypes.bool,
+    wrapFixedSticky: PropTypes.bool,
     tagName: PropTypes.string,
-    scrollClass: PropTypes.object
+    scrollClass: PropTypes.shape({
+      down : PropTypes.string,
+      up : PropTypes.string,
+      none : PropTypes.string,
+      persist : PropTypes.bool,
+      active : PropTypes.bool
+    })
   };
 
   static defaultProps = {
-    stickyWrapperClass: 'sticky-wrap',
+    wrapperClass: 'sticky-wrap',
     stickyClass: 'sticky',
     fixedClass: 'sticky-fixed',
     stateClass: 'is-sticky',
     disabledClass: 'sticky-disabled',
     absoluteClass: 'is-absolute',
+    wrapFixedSticky: true,
     debug: false,
     disabled: false,
     tagName: 'div',
     scrollClass: {
-      down: null,
-      up: null,
-      none: null,
-      persist: false
-    }
+        down: null,
+        up: null,
+        none: null,
+        persist: false,
+        active: false
+      }
   };
 
   constructor(props, context) {
+
     super(props, context);
 
     this._updatingBounds = false;
     this._shouldComponentUpdate = false;
-
     this._updatingState = false;
     this._key = 'sticky_' + Math.round(Math.random() * 1000);
+
+    this.state = assign({}, initialState);
 
     if (props.debug === true) {
       log = console.log.bind(console);
     }
 
-
-    this.state = initialState;
   }
 
 
@@ -148,95 +158,98 @@ export default class ReactStickyState extends Component {
 
   getBounds(noCache) {
 
-    var clientRect = this.getBoundingClientRect();
-    var offsetHeight = ScrollFeatures.documentHeight;
-    noCache = noCache === true;
+      var clientRect = this.getBoundingClientRect();
+      var offsetHeight = ScrollFeatures.documentHeight;
+      noCache = noCache === true;
 
-    if (noCache !== true && this.state.bounds.height !== null) {
-      if (this.state.offsetHeight === offsetHeight && clientRect.height === this.state.bounds.height) {
-        return {
-          offsetHeight: offsetHeight,
-          style: this.state.style,
-          bounds: this.state.bounds,
-          restrict: this.state.restrict
-        };
-      }
-    }
-
-    // var style = noCache ? this.state.style : getPositionStyle(this.refs.el);
-    var initialStyle = this.state.initialStyle;
-    if (!initialStyle) {
-      initialStyle = getPositionStyle(this.refs.el);
-    }
-
-    var style = initialStyle;
-    var child = this.refs.wrapper || this.refs.el;
-    var rect;
-    var restrict;
-    var offsetY = 0;
-    var offsetX = 0;
-
-    if (!Can.sticky) {
-      rect = getAbsolutBoundingRect(child, clientRect.height);
-      if (this.hasOwnScrollTarget) {
-        var parentRect = getAbsolutBoundingRect(this.scrollTarget);
-        offsetY = this.scroll.y;
-        rect = addBounds(rect, parentRect);
-        restrict = parentRect;
-        restrict.top = 0;
-        restrict.height = this.scroll.scrollHeight || restrict.height;
-        restrict.bottom = restrict.height;
-      }
-    } else {
-      var elem = getPreviousElementSibling(child);
-      offsetY = 0;
-
-      if (elem) {
-        offsetY = parseInt(window.getComputedStyle(elem)['margin-bottom']);
-        offsetY = offsetY || 0;
-        rect = getAbsolutBoundingRect(elem);
-        if (this.hasOwnScrollTarget) {
-          rect = addBounds(rect, getAbsolutBoundingRect(this.scrollTarget));
-          offsetY += this.scroll.y;
+      if (noCache !== true && this.state.bounds.height !== null) {
+        if (this.state.offsetHeight === offsetHeight && clientRect.height === this.state.bounds.height) {
+          return {
+            offsetHeight: offsetHeight,
+            style: this.state.style,
+            bounds: this.state.bounds,
+            restrict: this.state.restrict
+          };
         }
-        rect.top = rect.bottom + offsetY;
+      }
 
+      // var style = noCache ? this.state.style : getPositionStyle(this.el);
+      var initialStyle = this.state.initialStyle;
+      if (!initialStyle) {
+        initialStyle = getPositionStyle(this.refs.el);
+      }
+
+      var style = initialStyle;
+      var child = this.refs.wrapper || this.refs.el;
+      var rect;
+      var restrict;
+      var offsetY = 0;
+      var offsetX = 0;
+
+      if (!Can.sticky) {
+        rect = getAbsolutBoundingRect(child, clientRect.height);
+        if (this.hasOwnScrollTarget) {
+          var parentRect = getAbsolutBoundingRect(this.scrollTarget);
+          offsetY = this.scroll.y;
+          rect = addBounds(rect, parentRect);
+          restrict = parentRect;
+          restrict.top = 0;
+          restrict.height = this.scroll.scrollHeight || restrict.height;
+          restrict.bottom = restrict.height;
+        }
       } else {
-        elem = child.parentNode;
-        offsetY = parseInt(window.getComputedStyle(elem)['padding-top']);
-        offsetY = offsetY || 0;
-        rect = getAbsolutBoundingRect(elem);
-        if (this.hasOwnScrollTarget) {
-          rect = addBounds(rect, getAbsolutBoundingRect(this.scrollTarget));
-          offsetY += this.scroll.y;
+        var elem = getPreviousElementSibling(child);
+        offsetY = 0;
+
+        if (elem) {
+          offsetY = parseInt(window.getComputedStyle(elem)['margin-bottom']);
+          offsetY = offsetY || 0;
+          rect = getAbsolutBoundingRect(elem);
+          if (this.hasOwnScrollTarget) {
+            rect = addBounds(rect, getAbsolutBoundingRect(this.scrollTarget));
+            offsetY += this.scroll.y;
+          }
+          rect.top = rect.bottom + offsetY;
+
+        } else {
+          elem = child.parentNode;
+          offsetY = parseInt(window.getComputedStyle(elem)['padding-top']);
+          offsetY = offsetY || 0;
+          rect = getAbsolutBoundingRect(elem);
+          if (this.hasOwnScrollTarget) {
+            rect = addBounds(rect, getAbsolutBoundingRect(this.scrollTarget));
+            offsetY += this.scroll.y;
+          }
+          rect.top = rect.top + offsetY;
         }
-        rect.top = rect.top + offsetY;
-      }
-      if (this.hasOwnScrollTarget) {
-        restrict = getAbsolutBoundingRect(this.scrollTarget);
-        restrict.top = 0;
-        restrict.height = this.scroll.scrollHeight || restrict.height;
-        restrict.bottom = restrict.height;
+        if (this.hasOwnScrollTarget) {
+          restrict = getAbsolutBoundingRect(this.scrollTarget);
+          restrict.top = 0;
+          restrict.height = this.scroll.scrollHeight || restrict.height;
+          restrict.bottom = restrict.height;
+        }
+
+        rect.height = child.clientHeight;
+        rect.width = child.clientWidth;
+        rect.bottom = rect.top + rect.height;
       }
 
-      rect.height = child.clientHeight;
-      rect.width = child.clientWidth;
-      rect.bottom = rect.top + rect.height;
+      restrict = restrict || getAbsolutBoundingRect(child.parentNode);
+
+      return {
+        offsetHeight: offsetHeight,
+        style: style,
+        bounds: rect,
+        initialStyle: initialStyle,
+        restrict: restrict
+      };
     }
 
-    restrict = restrict || getAbsolutBoundingRect(child.parentNode);
+  updateBounds(silent, noCache , cb) {
 
-    return {
-      offsetHeight: offsetHeight,
-      style: style,
-      bounds: rect,
-      initialStyle: initialStyle,
-      restrict: restrict
-    };
-  }
+    noCache = noCache === true;
+    this._shouldComponentUpdate = silent !== true;
 
-  updateBounds(noCache = true, shouldComponentUpdate = true, cb) {
-    this._shouldComponentUpdate = shouldComponentUpdate;
     this.setState(this.getBounds(noCache), () => {
       this._shouldComponentUpdate = true;
       if (cb) {
@@ -244,6 +257,191 @@ export default class ReactStickyState extends Component {
       }
     });
   }
+
+
+  // updateFixedOffset() {
+  //   if (this.hasOwnScrollTarget && !Can.sticky) {
+
+  //     if (this.state.sticky) {
+  //       this.setState({ fixedOffset: this.scrollTarget.getBoundingClientRect().top + 'px' });
+  //       if (!this.hasWindowScrollListener) {
+  //         this.hasWindowScrollListener = true;
+  //         ScrollFeatures.getInstance(window).on('scroll:progress', this.updateFixedOffset);
+  //       }
+  //     } else {
+  //       this.setState({ fixedOffset: '' });
+  //       if (this.hasWindowScrollListener) {
+  //         this.hasWindowScrollListener = false;
+  //         ScrollFeatures.getInstance(window).off('scroll:progress', this.updateFixedOffset);
+  //       }
+  //     }
+  //   }
+  // }
+
+
+  updateFixedOffset() {
+    const fixedOffset = this.state.fixedOffset;
+    if (this.state.sticky) {
+      this.setState({ fixedOffset: (this.scrollTarget.getBoundingClientRect().top) + 'px;' });
+    } else {
+      this.setState({ fixedOffset: '' });
+    }
+    // if (fixedOffset !== this.state.fixedOffset) {
+    //   this.render();
+    // }
+  }
+
+
+  addSrollHandler() {
+    if (!this.scroll) {
+      var hasScrollTarget = ScrollFeatures.hasInstance(this.scrollTarget);
+      this.scroll = ScrollFeatures.getInstance(this.scrollTarget);
+      this.onScroll = this.onScroll.bind(this);
+      this.scroll.on('scroll:start', this.onScroll);
+      this.scroll.on('scroll:progress', this.onScroll);
+      this.scroll.on('scroll:stop', this.onScroll);
+
+      if (this.props.scrollClass.active) {
+        this.onScrollDirection = this.onScrollDirection.bind(this);
+        this.scroll.on('scroll:up', this.onScrollDirection);
+        this.scroll.on('scroll:down', this.onScrollDirection);
+        if (!this.props.scrollClass.persist) {
+          this.scroll.on('scroll:stop', this.onScrollDirection);
+        }
+      }
+      if (hasScrollTarget && this.scroll.scrollY > 0) {
+        this.scroll.trigger('scroll:progress');
+      }
+    }
+  }
+
+
+  removeSrollHandler() {
+    if (this.scroll) {
+      this.scroll.off('scroll:start', this.onScroll);
+      this.scroll.off('scroll:progress', this.onScroll);
+      this.scroll.off('scroll:stop', this.onScroll);
+      if (this.props.scrollClass.active) {
+        this.scroll.off('scroll:up', this.onScrollDirection);
+        this.scroll.off('scroll:down', this.onScrollDirection);
+        this.scroll.off('scroll:stop', this.onScrollDirection);
+      }
+      if(!this.scroll.hasListeners()){
+        this.scroll.destroy();
+      }
+      this.onScroll = null;
+      this.onScrollDirection = null;
+      this.scroll = null;
+    }
+  }
+
+
+  addResizeHandler() {
+    if (!this.onResize) {
+      this.onResize = this.update.bind(this);
+      window.addEventListener('sticky:update', this.onResize, false);
+      window.addEventListener('resize', this.onResize, false);
+      window.addEventListener('orientationchange', this.onResize, false);
+    }
+  }
+
+  removeResizeHandler() {
+    if (this.onResize) {
+      window.removeEventListener('sticky:update', this.onResize);
+      window.removeEventListener('resize', this.onResize);
+      window.removeEventListener('orientationchange', this.onResize);
+      this.onResize = null;
+    }
+  }
+
+
+  destroy() {
+    this._updatingBounds = false;
+    this._shouldComponentUpdate = false;
+    this._updatingState = false;
+    this.removeSrollHandler();
+    this.removeResizeHandler();
+    this.scrollTarget = null;
+  }
+
+
+
+  getScrollClasses(obj) {
+    if (this.options.scrollClass.active) {
+      obj = obj || {};
+      var direction = (this.scroll.y <= 0 || this.scroll.y + this.scroll.clientHeight >= this.scroll.scrollHeight) ? 0 : this.scroll.directionY;
+      obj[this.options.scrollClass.up] = direction < 0;
+      obj[this.options.scrollClass.down] = direction > 0;
+    }
+    return obj;
+  }
+
+
+  getScrollClass() {
+    if (this.props.scrollClass.up || this.props.scrollClass.down) {
+
+      var direction = (this.scroll.y <= 0 || this.scroll.y + this.scroll.clientHeight >= this.scroll.scrollHeight) ? 0 : this.scroll.directionY;
+      var scrollClass = direction < 0 ? this.props.scrollClass.up : this.props.scrollClass.down;
+      scrollClass = direction === 0 ? null : scrollClass;
+      return scrollClass;
+    }
+    return null;
+  }
+
+
+  onScrollDirection(e) {
+    if (this.state.sticky ||( e && e.type === ScrollFeatures.events.SCROLL_STOP)) {
+      this.setState({
+        scrollClass: this.getScrollClass()
+      })
+    }
+  }
+
+
+  onScroll(e) {
+    this.updateStickyState(false);
+    if (this.hasOwnScrollTarget && !Can.sticky) {
+      this.updateFixedOffset();
+      if (this.state.sticky && !this.hasWindowScrollListener) {
+        this.hasWindowScrollListener = true;
+        ScrollFeatures.getInstance(window).on('scroll:progress', this.updateFixedOffset);
+      } else if (!this.state.sticky && this.hasWindowScrollListener) {
+        this.hasWindowScrollListener = false;
+        ScrollFeatures.getInstance(window).off('scroll:progress', this.updateFixedOffset);
+      }
+    }
+  }
+
+
+  update() {
+
+    this.scroll.updateScrollPosition();
+    this.updateBounds(true, true, ()=>{
+      this.updateStickyState(false);
+    });
+  }
+
+
+  // update(force = false) {
+
+  //   if (!this._updatingBounds) {
+  //     log('update() force:' + force);
+  //     this._updatingBounds = true;
+  //     this.scroll.updateScrollPosition();
+  //     this.updateBounds(true, true, () => {
+  //       this.updateBounds(force, true, () => {
+  //         this.scroll.updateScrollPosition();
+  //         var updateSticky = this.updateStickyState(false, () => {
+  //           if (force && !updateSticky) {
+  //             this.forceUpdate();
+  //           }
+  //         });
+  //         this._updatingBounds = false;
+  //       });
+  //     });
+  //   }
+  // }
+
 
   getStickyState() {
 
@@ -255,8 +453,8 @@ export default class ReactStickyState extends Component {
     var scrollX = this.scroll.x;
     var top = this.state.style.top;
     var bottom = this.state.style.bottom;
-    var left = this.state.style.left;
-    var right = this.state.style.right;
+    // var left = this.state.style.left;
+    // var right = this.state.style.right;
     var sticky = this.state.sticky;
     var absolute = this.state.absolute;
 
@@ -285,79 +483,57 @@ export default class ReactStickyState extends Component {
         absolute = scrollY <= offsetTop;
       }
     }
-    return { sticky: sticky, absolute: absolute };
+    return { sticky, absolute };
   }
 
-  updateStickyState(bounds = true, cb) {
-    if (this._updatingState) {
-      return;
-    }
+  updateStickyState(silent) {
     var values = this.getStickyState();
 
     if (values.sticky !== this.state.sticky || values.absolute !== this.state.absolute) {
+      this._shouldComponentUpdate = silent !== true;
+      values = assign(values, this.getBounds());
       this._updatingState = true;
-      if (bounds) {
-        values = assign(values, this.getBounds(), { scrollClass: this.getScrollClass() });
-      }
-      this.setState(values, () => {
+      this.setState(values, ()=>{
+        this._shouldComponentUpdate = true;
         this._updatingState = false;
-        if (typeof cb === 'function') {
-          cb();
-        }
-      });
-      return true;
-    } else if (typeof cb === 'function') {
-      cb();
-    }
-    return false;
-  }
-
-  updateFixedOffset() {
-    if (this.hasOwnScrollTarget && !Can.sticky) {
-
-      if (this.state.sticky) {
-        this.setState({ fixedOffset: this.scrollTarget.getBoundingClientRect().top + 'px' });
-        if (!this.hasWindowScrollListener) {
-          this.hasWindowScrollListener = true;
-          ScrollFeatures.getInstance(window).on('scroll:progress', this.updateFixedOffset);
-        }
-      } else {
-        this.setState({ fixedOffset: '' });
-        if (this.hasWindowScrollListener) {
-          this.hasWindowScrollListener = false;
-          ScrollFeatures.getInstance(window).off('scroll:progress', this.updateFixedOffset);
-        }
-      }
-    }
-  }
-
-
-  update(force = false) {
-
-    if (!this._updatingBounds) {
-      log('update():: force:' + force);
-      this._updatingBounds = true;
-      this.updateBounds(true, true, () => {
-        this.scroll.updateScrollPosition();
-        this.updateBounds(force, true, () => {
-          this.scroll.updateScrollPosition();
-          var updateSticky = this.updateStickyState(false, () => {
-            if (force && !updateSticky) {
-              this.forceUpdate();
-            }
-          });
-          this._updatingBounds = false;
-        });
       });
     }
   }
+
+  // updateStickyState(bounds = true, cb) {
+  //   if (this._updatingState) {
+  //     return;
+  //   }
+  //   var values = this.getStickyState();
+
+  //   if (values.sticky !== this.state.sticky || values.absolute !== this.state.absolute) {
+  //     this._updatingState = true;
+  //     if (bounds) {
+  //       values = assign(values, this.getBounds(), { scrollClass: this.getScrollClass() });
+  //     }
+  //     this.setState(values, () => {
+  //       this._updatingState = false;
+  //       if (typeof cb === 'function') {
+  //         cb();
+  //       }
+  //     });
+  //     return true;
+  //   } else if (typeof cb === 'function') {
+  //     cb();
+  //   }
+  //   return false;
+  // }
+
+
+
+
 
   initialize() {
     var child = this.refs.wrapper || this.refs.el;
     this.scrollTarget = ScrollFeatures.getScrollParent(child);
     this.hasOwnScrollTarget = this.scrollTarget !== window;
     if (this.hasOwnScrollTarget) {
-      this.updateFixedOffset = ::this.updateFixedOffset;
+      this.updateFixedOffset = this.updateFixedOffset.bind(this);
     }
 
     this.addSrollHandler();
@@ -365,100 +541,7 @@ export default class ReactStickyState extends Component {
     this.update();
   }
 
-  addSrollHandler() {
-    if (!this.scroll) {
-      this.scroll = ScrollFeatures.getInstance(this.scrollTarget);
-      this.onScroll = ::this.onScroll;
-      this.onScrollDirection = ::this.onScrollDirection;
-      this.scroll.on('scroll:start', this.onScroll);
-      this.scroll.on('scroll:progress', this.onScroll);
-      this.scroll.on('scroll:stop', this.onScroll);
-      if (this.props.scrollClass.up || this.props.scrollClass.down) {
-        this.scroll.on('scroll:up', this.onScrollDirection);
-        this.scroll.on('scroll:down', this.onScrollDirection);
-        if (!this.props.scrollClass.persist) {
-          this.scroll.on('scroll:stop', this.onScrollDirection);
-        }
-      }
-    }
-  }
 
-  removeSrollHandler() {
-    if (this.scroll) {
-      this.scroll.off('scroll:start', this.onScroll);
-      this.scroll.off('scroll:progress', this.onScroll);
-      this.scroll.off('scroll:stop', this.onScroll);
-      this.scroll.off('scroll:up', this.onScrollDirection);
-      this.scroll.off('scroll:down', this.onScrollDirection);
-      this.scroll.off('scroll:stop', this.onScrollDirection);
-      if (!this.scroll.hasListeners()) {
-        this.scroll.destroy();
-
-      }
-      this.onScroll = null;
-      this.onScrollDirection = null;
-      this.scroll = null;
-    }
-  }
-
-  addResizeHandler() {
-    if (!this.resizeHandler) {
-      this.resizeHandler = ::this.onResize;
-      window.addEventListener('sticky:update', this.resizeHandler, false);
-      window.addEventListener('resize', this.resizeHandler, false);
-      window.addEventListener('orientationchange', this.resizeHandler, false);
-    }
-  }
-
-  removeResizeHandler() {
-    if (this.resizeHandler) {
-      window.removeEventListener('sticky:update', this.resizeHandler);
-      window.removeEventListener('resize', this.resizeHandler);
-      window.removeEventListener('orientationchange', this.resizeHandler);
-      this.resizeHandler = null;
-    }
-  }
-
-
-  getScrollClass() {
-    if (this.props.scrollClass.up || this.props.scrollClass.down) {
-
-      var direction = (this.scroll.y <= 0 || this.scroll.y + this.scroll.clientHeight >= this.scroll.scrollHeight) ? 0 : this.scroll.directionY;
-      var scrollClass = direction < 0 ? this.props.scrollClass.up : this.props.scrollClass.down;
-      scrollClass = direction === 0 ? null : scrollClass;
-      return scrollClass;
-    }
-    return null;
-  }
-
-  onScrollDirection(e) {
-
-    if (this.state.sticky || e && e.type === ScrollFeatures.EVENT_SCROLL_STOP) {
-      this.setState({
-          scrollClass: this.getScrollClass()
-        })
-        // this.refs.el.className = classNames(this.refs.el.className, this.getScrollClassObj());
-    }
-  }
-
-
-  onScroll(e) {
-    this.updateStickyState();
-    if (this.hasOwnScrollTarget && !Can.sticky) {
-      this.updateFixedOffset();
-      if (this.state.sticky && !this.hasWindowScrollListener) {
-        this.hasWindowScrollListener = true;
-        ScrollFeatures.getInstance(window).on('scroll:progress', this.updateFixedOffset);
-      } else if (!this.state.sticky && this.hasWindowScrollListener) {
-        this.hasWindowScrollListener = false;
-        ScrollFeatures.getInstance(window).off('scroll:progress', this.updateFixedOffset);
-      }
-    }
-  }
-
-  onResize(e) {
-    this.update();
-  }
 
   shouldComponentUpdate(newProps, newState) {
     return this._shouldComponentUpdate;
@@ -473,21 +556,21 @@ export default class ReactStickyState extends Component {
     }
   }
 
+
+
   componentDidMount() {
+    // console.log('huaa');
     setTimeout(() => this.initialize(), 1);
   }
 
   componentWillUnmount() {
-    this._shouldComponentUpdate = false;
-    this.removeSrollHandler();
-    this.removeResizeHandler();
-    this.scrollTarget = null;
+    this.destroy();
   }
 
   render() {
     let element = React.Children.only(this.props.children);
 
-    const { stickyWrapperClass, stickyClass, fixedClass, stateClass, disabledClass, absoluteClass, disabled, debug, tagName, ...props } = this.props;
+    const { wrapperClass, stickyClass, fixedClass, stateClass, disabledClass, absoluteClass, disabled, debug, tagName, ...props } = this.props;
 
     var style;
     const refName = 'el';
@@ -540,44 +623,14 @@ export default class ReactStickyState extends Component {
       style.position = 'relative';
     }
     return ( <div ref = 'wrapper'
-      className = { stickyWrapperClass }
+      className = { wrapperClass }
       style = { style }> { element } </div>
     );
   }
 }
 
 
-var _canSticky = null;
 
-class Can {
 
-  static get sticky() {
-    if (_canSticky !== null) {
-      return _canSticky;
-    }
-    if (typeof window !== 'undefined') {
 
-      if (window.Modernizr && window.Modernizr.hasOwnProperty('csspositionsticky')) {
-        return _globals.canSticky = window.Modernizr.csspositionsticky;
-      }
-
-      var documentFragment = document.documentElement;
-      var testEl = document.createElement('div');
-      documentFragment.appendChild(testEl);
-      var prefixedSticky = ['sticky', '-webkit-sticky'];
-
-      _canSticky = false;
-
-      for (var i = 0; i < prefixedSticky.length; i++) {
-        testEl.style.position = prefixedSticky[i];
-        _canSticky = !!window.getComputedStyle(testEl).position.match('sticky');
-        if (_canSticky) {
-          break;
-        }
-      }
-      documentFragment.removeChild(testEl);
-    }
-    return _canSticky;
-  };
-
-}
+export default ReactStickyState;

@@ -3,7 +3,6 @@
   "version": "2.0.1",
   "description": "React StickyState Component makes native position:sticky statefull and polyfills the missing sticky browser feature",
   "main": "dist/react-sticky-state.js",
-  "jsnext:main": "src/react-sticky-state.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build-js": "browserify --fast -e src/react-sticky-state.js -d --standalone ReactStickyState -t babelify -t browserify-shim | derequire | exorcist dist/react-sticky-state.min.js.map > dist/react-sticky-state.min.js",
@@ -37,28 +36,29 @@
   },
   "homepage": "https://github.com/soenkekluth/react-sticky-state#readme",
   "devDependencies": {
-    "babel-cli": "6.14.0",
-    "babel-core": "6.14.0",
+    "babel-cli": "6.18.0",
+    "babel-core": "6.18.2",
     "babel-plugin-add-module-exports": "0.2.1",
     "babel-plugin-react-transform": "2.0.2",
-    "babel-plugin-transform-class-properties": "6.11.5",
-    "babel-preset-es2015": "6.14.0",
-    "babel-preset-react": "6.11.1",
-    "babel-preset-stage-0": "6.5.0",
+    "babel-plugin-transform-class-properties": "6.19.0",
+    "babel-preset-es2015": "6.18.0",
+    "babel-preset-react": "6.16.0",
+    "babel-preset-stage-0": "6.16.0",
     "babelify": "7.3.0",
-    "browser-sync": "2.16.0",
-    "browserify": "13.1.0",
+    "browser-sync": "2.18.2",
+    "browserify": "13.1.1",
     "browserify-shim": "3.8.12",
     "derequire": "2.0.3",
     "exorcist": "0.4.0",
-    "npm-run-all": "3.1.0",
-    "react": "15.3.2",
+    "npm-run-all": "3.1.1",
+    "react": "15.4.1",
+    "react-dom": "15.4.1",
     "uglifyjs": "2.4.10",
     "watchify": "3.7.0"
   },
   "dependencies": {
     "classnames": "2.2.5",
     "object-assign": "4.1.0",
-    "scrollfeatures": "1.1.0"
+    "scrollfeatures": "1.5.0"
   }
 }
