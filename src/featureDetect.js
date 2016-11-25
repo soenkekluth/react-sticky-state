@@ -1,6 +1,6 @@
 var _canSticky = null;
 
-class Can {
+export default class Can {
 
   static get sticky() {
     if (_canSticky !== null) {
