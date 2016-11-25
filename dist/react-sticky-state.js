@@ -643,12 +643,8 @@ var ReactStickyState = function (_Component) {
       }
       return _react2.default.createElement(
         'div',
-        { ref: 'wrapper',
-          className: wrapperClass,
-          style: style },
-        ' ',
-        element,
-        ' '
+        { ref: 'wrapper', className: wrapperClass, style: style },
+        element
       );
     }
   }]);

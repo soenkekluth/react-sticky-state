@@ -622,15 +622,9 @@ class ReactStickyState extends Component {
     if (this.state.absolute) {
       style.position = 'relative';
     }
-    return ( <div ref = 'wrapper'
-      className = { wrapperClass }
-      style = { style }> { element } </div>
-    );
+    return (<div ref='wrapper' className={wrapperClass} style={style}>{element}</div>);
   }
 }
-
-
-
 
 
 export default ReactStickyState;
