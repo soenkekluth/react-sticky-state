@@ -43,6 +43,7 @@ function _inherits(subClass, superClass) { if (typeof superClass !== "function" 
 var log = function log() {};
 
 var initialState = {
+  initialized: false,
   sticky: false,
   absolute: false,
   fixedOffset: '',
@@ -133,11 +134,10 @@ var ReactStickyState = function (_Component) {
     var _this = _possibleConstructorReturn(this, (ReactStickyState.__proto__ || Object.getPrototypeOf(ReactStickyState)).call(this, props, context));
 
     _this._updatingBounds = false;
-    _this._shouldComponentUpdate = false;
+    _this._shouldComponentUpdate = true;
     _this._updatingState = false;
-    _this._key = 'sticky_' + Math.round(Math.random() * 1000);
 
-    _this.state = (0, _objectAssign2.default)({}, initialState);
+    _this.state = (0, _objectAssign2.default)({}, initialState, { disabled: props.disabled });
 
     if (props.debug === true) {
       log = console.log.bind(console);
@@ -181,7 +181,7 @@ var ReactStickyState = function (_Component) {
       var rect;
       var restrict;
       var offsetY = 0;
-      var offsetX = 0;
+      // var offsetX = 0;
 
       if (!_featureDetect2.default.sticky) {
         rect = getAbsolutBoundingRect(child, clientRect.height);
@@ -279,6 +279,7 @@ var ReactStickyState = function (_Component) {
   }, {
     key: 'updateFixedOffset',
     value: function updateFixedOffset() {
+
       var fixedOffset = this.state.fixedOffset;
       if (this.state.sticky) {
         this.setState({ fixedOffset: this.scrollTarget.getBoundingClientRect().top + 'px;' });
@@ -415,7 +416,7 @@ var ReactStickyState = function (_Component) {
     value: function update() {
       var _this3 = this;
 
-      this.scroll.updateScrollPosition();
+      // this.scroll.updateScrollPosition();
       this.updateBounds(true, true, function () {
         _this3.updateStickyState(false);
       });
@@ -424,7 +425,6 @@ var ReactStickyState = function (_Component) {
     // update(force = false) {
 
     //   if (!this._updatingBounds) {
-    //     log('update() force:' + force);
     //     this._updatingBounds = true;
     //     this.scroll.updateScrollPosition();
     //     this.updateBounds(true, true, () => {
@@ -451,7 +451,7 @@ var ReactStickyState = function (_Component) {
       }
 
       var scrollY = this.scroll.y;
-      var scrollX = this.scroll.x;
+      // var scrollX = this.scroll.x;
       var top = this.state.style.top;
       var bottom = this.state.style.bottom;
       // var left = this.state.style.left;
@@ -495,7 +495,7 @@ var ReactStickyState = function (_Component) {
 
       if (values.sticky !== this.state.sticky || values.absolute !== this.state.absolute) {
         this._shouldComponentUpdate = silent !== true;
-        values = (0, _objectAssign2.default)(values, this.getBounds());
+        values = (0, _objectAssign2.default)(values, this.getBounds(false));
         this._updatingState = true;
         this.setState(values, function () {
           _this4._shouldComponentUpdate = true;
@@ -532,16 +532,24 @@ var ReactStickyState = function (_Component) {
   }, {
     key: 'initialize',
     value: function initialize() {
-      var child = this.refs.wrapper || this.refs.el;
-      this.scrollTarget = _scrollfeatures2.default.getScrollParent(child);
-      this.hasOwnScrollTarget = this.scrollTarget !== window;
-      if (this.hasOwnScrollTarget) {
-        this.updateFixedOffset = this.updateFixedOffset.bind(this);
-      }
+      var _this5 = this;
 
-      this.addSrollHandler();
-      this.addResizeHandler();
-      this.update();
+      if (!this.state.initialized && !this.state.disabled) {
+        this.setState({
+          initialized: true
+        }, function () {
+          var child = _this5.refs.wrapper || _this5.refs.el;
+          _this5.scrollTarget = _scrollfeatures2.default.getScrollParent(child);
+          _this5.hasOwnScrollTarget = _this5.scrollTarget !== window;
+          if (_this5.hasOwnScrollTarget) {
+            _this5.updateFixedOffset = _this5.updateFixedOffset.bind(_this5);
+          }
+
+          _this5.addSrollHandler();
+          _this5.addResizeHandler();
+          _this5.update();
+        });
+      }
     }
   }, {
     key: 'shouldComponentUpdate',
@@ -550,22 +558,27 @@ var ReactStickyState = function (_Component) {
     }
   }, {
     key: 'componentWillReceiveProps',
-    value: function componentWillReceiveProps(props) {
-      if (props.disabled !== this.state.disabled) {
+    value: function componentWillReceiveProps(nextProps) {
+      var _this6 = this;
+
+      var intialize = !this.state.initialized && nextProps.initialize;
+
+      if (nextProps.disabled !== this.state.disabled) {
         this.setState({
-          disabled: props.disabled
+          disabled: nextProps.disabled
+        }, function () {
+          if (intialize) {
+            _this6.initialize();
+          }
         });
       }
     }
   }, {
     key: 'componentDidMount',
     value: function componentDidMount() {
-      var _this5 = this;
-
-      // console.log('huaa');
-      setTimeout(function () {
-        return _this5.initialize();
-      }, 1);
+      if (!this.state.initialized && this.props.initialize) {
+        this.initialize();
+      }
     }
   }, {
     key: 'componentWillUnmount',
@@ -576,6 +589,10 @@ var ReactStickyState = function (_Component) {
     key: 'render',
     value: function render() {
       var _classNames;
+
+      if (!this.state.initialized) {
+        return this.props.children;
+      }
 
       var element = _react2.default.Children.only(this.props.children);
 
@@ -610,18 +627,13 @@ var ReactStickyState = function (_Component) {
       }
 
       if (element) {
-        element = _react2.default.cloneElement(element, { ref: refName, key: this._key, style: style, className: (0, _classnames2.default)(element.props.className, className) });
+        element = _react2.default.cloneElement(element, { ref: refName, style: style, className: (0, _classnames2.default)(element.props.className, className) });
       } else {
         var Comp = this.props.tagName;
         element = _react2.default.createElement(
           Comp,
-          _extends({ ref: refName,
-            key: this._key,
-            style: style,
-            className: className }, props),
-          ' ',
-          this.props.children,
-          ' '
+          _extends({ ref: refName, style: style, className: className }, props),
+          this.props.children
         );
       }
 
@@ -629,7 +641,7 @@ var ReactStickyState = function (_Component) {
         return element;
       }
 
-      var height = this.state.disabled || this.state.bounds.height === null || !this.state.sticky && !this.state.absolute ? 'auto' : this.state.bounds.height + 'px';
+      var height = this.state.disabled || this.state.bounds.height === null /*|| (!this.state.sticky && !this.state.absolute)*/ ? 'auto' : this.state.bounds.height + 'px';
       var marginTop = height === 'auto' ? '' : this.state.style['margin-top'] ? this.state.style['margin-top'] + 'px' : '';
       var marginBottom = height === 'auto' ? '' : this.state.style['margin-bottom'] ? this.state.style['margin-bottom'] + 'px' : '';
 
@@ -653,6 +665,7 @@ var ReactStickyState = function (_Component) {
 }(_react.Component);
 
 ReactStickyState.propTypes = {
+  initialize: _react.PropTypes.bool,
   wrapperClass: _react.PropTypes.string,
   stickyClass: _react.PropTypes.string,
   fixedClass: _react.PropTypes.string,
@@ -672,6 +685,7 @@ ReactStickyState.propTypes = {
   })
 };
 ReactStickyState.defaultProps = {
+  initialize: true,
   wrapperClass: 'sticky-wrap',
   stickyClass: 'sticky',
   fixedClass: 'sticky-fixed',

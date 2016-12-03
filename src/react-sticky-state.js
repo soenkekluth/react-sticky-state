@@ -9,6 +9,7 @@ var log = function() {};
 
 
 const initialState = {
+  initialized: false,
   sticky: false,
   absolute: false,
   fixedOffset: '',
@@ -93,8 +94,8 @@ const getPreviousElementSibling = el => {
 
 class ReactStickyState extends Component {
 
-
   static propTypes = {
+    initialize: PropTypes.bool,
     wrapperClass: PropTypes.string,
     stickyClass: PropTypes.string,
     fixedClass: PropTypes.string,
@@ -115,6 +116,7 @@ class ReactStickyState extends Component {
   };
 
   static defaultProps = {
+    initialize: true,
     wrapperClass: 'sticky-wrap',
     stickyClass: 'sticky',
     fixedClass: 'sticky-fixed',
@@ -139,11 +141,10 @@ class ReactStickyState extends Component {
     super(props, context);
 
     this._updatingBounds = false;
-    this._shouldComponentUpdate = false;
+    this._shouldComponentUpdate = true;
     this._updatingState = false;
-    this._key = 'sticky_' + Math.round(Math.random() * 1000);
 
-    this.state = assign({}, initialState);
+    this.state = assign({}, initialState, {disabled:props.disabled});
 
     if (props.debug === true) {
       log = console.log.bind(console);
@@ -173,6 +174,8 @@ class ReactStickyState extends Component {
         }
       }
 
+
+
       // var style = noCache ? this.state.style : getPositionStyle(this.el);
       var initialStyle = this.state.initialStyle;
       if (!initialStyle) {
@@ -184,7 +187,7 @@ class ReactStickyState extends Component {
       var rect;
       var restrict;
       var offsetY = 0;
-      var offsetX = 0;
+      // var offsetX = 0;
 
       if (!Can.sticky) {
         rect = getAbsolutBoundingRect(child, clientRect.height);
@@ -280,6 +283,7 @@ class ReactStickyState extends Component {
 
 
   updateFixedOffset() {
+
     const fixedOffset = this.state.fixedOffset;
     if (this.state.sticky) {
       this.setState({ fixedOffset: (this.scrollTarget.getBoundingClientRect().top) + 'px;' });
@@ -414,8 +418,7 @@ class ReactStickyState extends Component {
 
 
   update() {
-
-    this.scroll.updateScrollPosition();
+    // this.scroll.updateScrollPosition();
     this.updateBounds(true, true, ()=>{
       this.updateStickyState(false);
     });
@@ -425,7 +428,6 @@ class ReactStickyState extends Component {
   // update(force = false) {
 
   //   if (!this._updatingBounds) {
-  //     log('update() force:' + force);
   //     this._updatingBounds = true;
   //     this.scroll.updateScrollPosition();
   //     this.updateBounds(true, true, () => {
@@ -450,7 +452,7 @@ class ReactStickyState extends Component {
     }
 
     var scrollY = this.scroll.y;
-    var scrollX = this.scroll.x;
+    // var scrollX = this.scroll.x;
     var top = this.state.style.top;
     var bottom = this.state.style.bottom;
     // var left = this.state.style.left;
@@ -491,7 +493,7 @@ class ReactStickyState extends Component {
 
     if (values.sticky !== this.state.sticky || values.absolute !== this.state.absolute) {
       this._shouldComponentUpdate = silent !== true;
-      values = assign(values, this.getBounds());
+      values = assign(values, this.getBounds(false));
       this._updatingState = true;
       this.setState(values, ()=>{
         this._shouldComponentUpdate = true;
@@ -529,16 +531,22 @@ class ReactStickyState extends Component {
 
 
   initialize() {
-    var child = this.refs.wrapper || this.refs.el;
-    this.scrollTarget = ScrollFeatures.getScrollParent(child);
-    this.hasOwnScrollTarget = this.scrollTarget !== window;
-    if (this.hasOwnScrollTarget) {
-      this.updateFixedOffset = this.updateFixedOffset.bind(this);
-    }
+    if(!this.state.initialized && !this.state.disabled){
+      this.setState({
+        initialized:true
+      },()=>{
+        var child = this.refs.wrapper || this.refs.el;
+        this.scrollTarget = ScrollFeatures.getScrollParent(child);
+        this.hasOwnScrollTarget = this.scrollTarget !== window;
+        if (this.hasOwnScrollTarget) {
+          this.updateFixedOffset = this.updateFixedOffset.bind(this);
+        }
 
-    this.addSrollHandler();
-    this.addResizeHandler();
-    this.update();
+        this.addSrollHandler();
+        this.addResizeHandler();
+        this.update();
+      })
+    }
   }
 
 
@@ -548,10 +556,16 @@ class ReactStickyState extends Component {
   }
 
 
-  componentWillReceiveProps(props) {
-    if (props.disabled !== this.state.disabled) {
+  componentWillReceiveProps(nextProps) {
+    const intialize = !this.state.initialized && nextProps.initialize;
+
+    if (nextProps.disabled !== this.state.disabled) {
       this.setState({
-        disabled: props.disabled
+        disabled: nextProps.disabled
+      }, ()=>{
+          if(intialize){
+            this.initialize();
+          }
       });
     }
   }
@@ -559,8 +573,9 @@ class ReactStickyState extends Component {
 
 
   componentDidMount() {
-    // console.log('huaa');
-    setTimeout(() => this.initialize(), 1);
+    if(!this.state.initialized && this.props.initialize){
+      this.initialize();
+    }
   }
 
   componentWillUnmount() {
@@ -568,6 +583,11 @@ class ReactStickyState extends Component {
   }
 
   render() {
+
+    if(!this.state.initialized){
+      return this.props.children;
+    }
+
     let element = React.Children.only(this.props.children);
 
     const { wrapperClass, stickyClass, fixedClass, stateClass, disabledClass, absoluteClass, disabled, debug, tagName, ...props } = this.props;
@@ -597,20 +617,17 @@ class ReactStickyState extends Component {
     }
 
     if (element) {
-      element = React.cloneElement(element, { ref: refName, key: this._key, style: style, className: classNames(element.props.className, className) });
+      element = React.cloneElement(element, { ref: refName, style: style, className: classNames(element.props.className, className) });
     } else {
       const Comp = this.props.tagName;
-      element = <Comp ref = { refName }
-      key = { this._key }
-      style = { style }
-      className = { className } {...props }> { this.props.children } </Comp>;
+      element = <Comp ref={ refName } style={ style } className={ className } {...props }>{this.props.children}</Comp>;
     }
 
     if (Can.sticky) {
       return element;
     }
 
-    const height = (this.state.disabled || this.state.bounds.height === null || (!this.state.sticky && !this.state.absolute)) ? 'auto' : this.state.bounds.height + 'px';
+    const height = (this.state.disabled || this.state.bounds.height === null /*|| (!this.state.sticky && !this.state.absolute)*/) ? 'auto' : this.state.bounds.height + 'px';
     const marginTop = height === 'auto' ? '' : (this.state.style['margin-top'] ? this.state.style['margin-top'] + 'px' : '');
     const marginBottom = height === 'auto' ? '' : (this.state.style['margin-bottom'] ? this.state.style['margin-bottom'] + 'px' : '');
 
