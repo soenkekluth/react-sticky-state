@@ -69,34 +69,44 @@ Sticky either takes its only child and adds the behavior and classes to it or wr
 
 ```javascript
 static propTypes = {
-    stickyWrapperClass: React.PropTypes.string,
-    stickyClass: React.PropTypes.string,
-    fixedClass: React.PropTypes.string,
-    stateClass:  React.PropTypes.string,
-    disabledClass:  React.PropTypes.string,
-    absoluteClass:  React.PropTypes.string,
-    disabled: React.PropTypes.bool,
-    debug: React.PropTypes.bool,
-    tagName: React.PropTypes.string,
-    scrollClass: PropTypes.object
+    initialize: PropTypes.bool,
+    wrapperClass: PropTypes.string,
+    stickyClass: PropTypes.string,
+    fixedClass: PropTypes.string,
+    stateClass: PropTypes.string,
+    disabledClass: PropTypes.string,
+    absoluteClass: PropTypes.string,
+    disabled: PropTypes.bool,
+    debug: PropTypes.bool,
+    wrapFixedSticky: PropTypes.bool,
+    tagName: PropTypes.string,
+    scrollClass: PropTypes.shape({
+      down : PropTypes.string,
+      up : PropTypes.string,
+      none : PropTypes.string,
+      persist : PropTypes.bool,
+      active : PropTypes.bool
+    })
   };
 
   static defaultProps = {
-    stickyWrapperClass: 'sticky-wrap',
+    initialize: true,
+    wrapperClass: 'sticky-wrap',
     stickyClass: 'sticky',
     fixedClass: 'sticky-fixed',
     stateClass: 'is-sticky',
     disabledClass: 'sticky-disabled',
     absoluteClass: 'is-absolute',
+    wrapFixedSticky: true,
     debug: false,
     disabled: false,
     tagName: 'div',
     scrollClass: {
-      down: null,
-      up: null,
-      none: null,
-      persist: false,
-      active: false
-    }
+        down: null,
+        up: null,
+        none: null,
+        persist: false,
+        active: false
+      }
   };
 ```
