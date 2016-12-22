@@ -1,12 +1,19 @@
 {
   "presets": [
+    ["es2015", {"loose": true}],
     "react",
-    "stage-0",
-    "es2015"
+    "stage-0"
   ],
   "plugins": [
-      "transform-class-properties",
-      "transform-class-constructor-call",
-      "add-module-exports"
-    ]
+    [
+      "transform-runtime", {
+        "helpers": true,
+        "polyfill": false,
+        "regenerator": false,
+        "moduleName": "babel-runtime"
+      }
+    ],
+    "transform-class-properties",
+    "add-module-exports"
+  ]
 }
