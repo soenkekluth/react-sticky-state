@@ -7,6 +7,8 @@ todays browser do not all support the position:sticky feature (which by the way 
 
 unlike almost all polyfills you can find in the wild StickyState is high perfomant. the calculations are reduced to a minimum by persisting several attributes.
 
+# Warning concerning Chromes implementation of native position:sticky
+it looks like chromes implementaton of position:sticky is different to all other implementations out there. don't know if thats a bug - but bottom is currently not recognized by chrome. there will be a fix for this soon in sticky-state 
 
 ### Browser support
 IE >= 9, *
