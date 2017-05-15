@@ -1,6 +1,6 @@
 {
   "name": "react-sticky-state",
-  "version": "2.1.5",
+  "version": "2.1.6",
   "description": "React StickyState Component makes native position:sticky statefull and polyfills the missing sticky browser feature",
   "main": "lib/react-sticky-state.js",
   "scripts": {
@@ -35,6 +35,11 @@
   "bugs": {
     "url": "https://github.com/soenkekluth/react-sticky-state/issues"
   },
+  "files": [
+    "src",
+    "lib",
+    "dist"
+  ],
   "homepage": "https://github.com/soenkekluth/react-sticky-state#readme",
   "devDependencies": {
     "babel-cli": "^6.18.0",
@@ -48,12 +53,12 @@
     "babel-runtime": "^6.20.0",
     "babelify": "^7.3.0",
     "browser-sync": "^2.18.5",
-    "browserify": "^13.1.1",
+    "browserify": "^14.3.0",
     "browserify-shim": "^3.8.12",
-    "cross-env": "^3.1.3",
+    "cross-env": "^5.0.0",
     "derequire": "^2.0.6",
     "exorcist": "^0.4.0",
-    "npm-run-all": "^3.1.2",
+    "npm-run-all": "^4.0.2",
     "react": "^15.4.1",
     "react-dom": "^15.4.1",
     "uglifyjs": "^2.4.10",
@@ -61,7 +66,7 @@
   },
   "dependencies": {
     "classnames": "2.2.5",
-    "object-assign": "4.1.0",
-    "scrollfeatures": "^1.5.2"
+    "object-assign": "^4.1.1",
+    "scrollfeatures": "^1.8.4"
   }
 }
