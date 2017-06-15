@@ -1,4 +1,5 @@
 import React, { Component, PropTypes } from 'react';
+import PropTypes from 'PropTypes';
 import classNames from 'classnames';
 import ScrollFeatures from 'scrollfeatures';
 import assign from 'object-assign';
