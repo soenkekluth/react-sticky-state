@@ -67,6 +67,7 @@
   "dependencies": {
     "classnames": "2.2.5",
     "object-assign": "^4.1.1",
+    "prop-types": "^15.5.8",
     "scrollfeatures": "^1.8.4"
   }
 }
