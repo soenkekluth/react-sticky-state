@@ -1,4 +1,6 @@
 # react-sticky-state
+
+[![Greenkeeper badge](https://badges.greenkeeper.io/soenkekluth/react-sticky-state.svg)](https://greenkeeper.io/)
 The React Sticky[State] Component makes native position:sticky statefull and polyfills the missing sticky browser feature. 
 
 Its the React version of https://github.com/soenkekluth/sticky-state
