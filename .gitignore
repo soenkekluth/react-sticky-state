@@ -8,3 +8,4 @@ node_modules
 TODO
 .tern-port
 *.js.map
+.history
