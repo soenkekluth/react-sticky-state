@@ -1,14 +1,14 @@
 # react-sticky-state
-The React Sticky[State] Component makes native position:sticky statefull and polyfills the missing sticky browser feature. 
+The React Sticky[State] Component makes native position:sticky statefull and polyfills the missing sticky browser feature.
 
 Its the React version of https://github.com/soenkekluth/sticky-state
 
-todays browser do not all support the position:sticky feature (which by the way is beeing used (polyfilled) on pretty much every site you visit) - moreover the native supported feature itself comes without a readable state. something like a:hover => div:sticky to add different styles to the element in its sticky state - or to read the state if needed in javacript. 
+todays browser do not all support the position:sticky feature (which by the way is beeing used (polyfilled) on pretty much every site you visit) - moreover the native supported feature itself comes without a readable state. something like a:hover => div:sticky to add different styles to the element in its sticky state - or to read the state if needed in javacript.
 
 unlike almost all polyfills you can find in the wild StickyState is high perfomant. the calculations are reduced to a minimum by persisting several attributes.
 
 # Warning concerning Chromes implementation of native position:sticky
-it looks like chromes implementaton of position:sticky is different to all other implementations out there. don't know if thats a bug - but bottom is currently not recognized by chrome. there will be a fix for this soon in sticky-state 
+it looks like chromes implementaton of position:sticky is different to all other implementations out there. don't know if thats a bug - but bottom is currently not recognized by chrome. there will be a fix for this soon in sticky-state
 
 ### Browser support
 IE >= 9, *
@@ -22,7 +22,7 @@ npm install react-sticky-state
 ```
 
 ### css
-your css should contain the following lines: 
+your css should contain the following lines:
 (you can specify the classNames in js)
 ```css
 .sticky {
@@ -67,7 +67,7 @@ import Sticky from 'react-sticky-state';
 
 Sticky either takes its only child and adds the behavior and classes to it or wrappes all children inside an element if there are more than one. the tagname can be defined by props.
 
-### possible props 
+### possible props
 
 ```javascript
 static propTypes = {
@@ -112,3 +112,9 @@ static propTypes = {
       }
   };
 ```
+
+# License
+
+The MIT License (MIT)
+
+Copyright (c) 2018 Sönke Kluth
