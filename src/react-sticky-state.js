@@ -113,7 +113,8 @@ class ReactStickyState extends Component {
       none : PropTypes.string,
       persist : PropTypes.bool,
       active : PropTypes.bool
-    })
+    }),
+    children: PropTypes.oneOfType([PropTypes.node, PropTypes.func])
   };
 
   static defaultProps = {
@@ -584,12 +585,20 @@ class ReactStickyState extends Component {
   }
 
   render() {
+    const children =
+      typeof this.props.children === 'function'
+        ? this.props.children({
+            absolute: this.state.absolute,
+            disabled: this.state.disabled,
+            sticky: this.state.sticky,
+          })
+        : this.props.children;
 
     if(!this.state.initialized){
-      return this.props.children;
+      return children;
     }
 
-    let element = React.Children.only(this.props.children);
+    let element = React.Children.only(children);
 
     const { wrapperClass, stickyClass, fixedClass, stateClass, disabledClass, absoluteClass, disabled, debug, tagName, ...props } = this.props;
 
@@ -621,7 +630,7 @@ class ReactStickyState extends Component {
       element = React.cloneElement(element, { ref: refName, style: style, className: classNames(element.props.className, className) });
     } else {
       const Comp = this.props.tagName;
-      element = <Comp ref={ refName } style={ style } className={ className } {...props }>{this.props.children}</Comp>;
+      element = <Comp ref={ refName } style={ style } className={ className } {...props }>{children}</Comp>;
     }
 
     if (Can.sticky) {
