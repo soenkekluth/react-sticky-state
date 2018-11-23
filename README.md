@@ -65,9 +65,13 @@ import Sticky from 'react-sticky-state';
 
 ```
 
-Sticky either takes its only child and adds the behavior and classes to it or wrappes all children inside an element if there are more than one. the tagname can be defined by props.
+Sticky as `children` takes either:
 
-### possible props 
+- its' only child and adds the behavior and classes to it, or
+- wraps all children inside an element if there are more than one. (The `tagName` can be defined by props.)
+- a function, which will receive `{ absolute: bool, sticky: bool, disabled: bool }` object as a first argument and should return a child or children. (Example usage: `<Sticky>{({ sticky }) => <Menu isCollapsed={sticky} />}</Sticky>`.)
+
+### possible props
 
 ```javascript
 static propTypes = {
@@ -88,7 +92,8 @@ static propTypes = {
       none : PropTypes.string,
       persist : PropTypes.bool,
       active : PropTypes.bool
-    })
+    }),
+    children: PropTypes.oneOfType([PropTypes.node, PropTypes.func])
   };
 
   static defaultProps = {
