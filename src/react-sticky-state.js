@@ -196,6 +196,9 @@ class ReactStickyState extends Component {
           var parentRect = getAbsolutBoundingRect(this.scrollTarget);
           offsetY = this.scroll.y;
           rect = addBounds(rect, parentRect);
+          rect.top += offsetY;
+          rect.bottom += offsetY;
+          
           restrict = parentRect;
           restrict.top = 0;
           restrict.height = this.scroll.scrollHeight || restrict.height;
